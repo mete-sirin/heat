@@ -2,14 +2,20 @@ import { useNavigate } from "react-router";
 import { useState } from "react";
 import Footer from "../../../ui/Footer";
 
-function Login() {
-  const [email, setEmail] = useState();
-  const [password, setPassword] = useState();
-  function handleLogin(e) {
+function SignUp() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [currency, setCurrency] = useState("tr");
+  const navigate = useNavigate();
+
+  function handleSignup(e) {
     e.preventDefault();
-    console.log(email, password);
+    if (password.length < 5) return;
+    navigate("./success");
   }
   return (
+    //// TODO: mask the bg image into the text (background-clip: text + transparent fill)
     <div className="relative min-h-screen overflow-hidden">
       <div
         aria-hidden="true"
@@ -24,9 +30,17 @@ function Login() {
               Handle your cash and never forget about subscriptions
             </p>
             <form
-              action="submit"
-              className="flex flex-col gap-4 h-max w-2/3 border rounded-sm p-4 bg-primary-hover"
+              onSubmit={handleSignup}
+              className="flex flex-col gap-4 h-max w-2/3 border rounded-sm p-4 bg-amber-50"
             >
+              <input
+                type="text"
+                placeholder="Name"
+                value={name}
+                className="p-2 border border-border"
+                required
+                onChange={(e) => setName(e.target.value)}
+              />
               <input
                 type="email"
                 placeholder="ardaguler@gmail.com"
@@ -34,6 +48,7 @@ function Login() {
                 className="p-2 border border-border"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="new-email"
               />
               <input
                 type="password"
@@ -42,13 +57,23 @@ function Login() {
                 className="p-2 border border-border"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
               />
+              <select
+                name="currency"
+                value={currency}
+                className="p-2 border border-border"
+                onChange={(e) => setCurrency(e.target.value)}
+              >
+                <option value="tr">Lira</option>
+                <option value="dol">Dollar</option>
+                <option value="eu">Euro</option>
+              </select>
               <button
-                onClick={handleLogin}
                 className="cursor-pointer  text-white bg-black
               hover:bg-black/80 p-2 rounded-sm"
               >
-                Login
+                Sign Up
               </button>
             </form>
           </section>
@@ -59,4 +84,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default SignUp;
