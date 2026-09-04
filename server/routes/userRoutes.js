@@ -1,13 +1,13 @@
 import express from "express";
-import { login } from "../controllers/userController.js";
+import * as userController from "../controllers/userController.js";
 const userRouter = express.Router();
 
 function placeholderFunction() {
   return true;
 }
 
-userRouter.post("/login", login);
-userRouter.post("/signup", placeholderFunction);
+userRouter.post("/login", userController.login);
+userRouter.post("/signup", userController.signup);
 userRouter.post("/signout", placeholderFunction);
 userRouter.post("/changePassword", placeholderFunction);
 
