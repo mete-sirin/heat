@@ -8,4 +8,6 @@ export const config = {
     password: process.env.DATABASE_PASSWORD,
     database: process.env.DATABASE_NAME,
   },
+  jwtSecret: process.env.JWT_SECRET,
+  jwtExpires: process.env.JWT_EXPIRES_IN,
 };
