@@ -113,4 +113,34 @@ async function logout(req, res) {
   });
 }
 
-export { login, signup, protect, logout };
+async function changePassword(req, res, next) {
+  const { currentPassword, newPassword, newPasswordConfirm } = req.body;
+  if (!currentPassword || !newPassword || !newPasswordConfirm) {
+    return next(new ErrorApi("Missing fields.", 400));
+  }
+  if (newPassword !== newPasswordConfirm) {
+    return next(new ErrorApi("Passwords don't match. Check again.", 400));
+  }
+
+  await userModel.checkandUpdatePassword(
+    currentPassword,
+    newPassword,
+    req.user,
+  );
+
+  const payload = {
+    id: req.user.id,
+    email: req.user.email,
+  };
+
+  const token = jwt.sign(payload, config.jwtSecret, {
+    expiresIn: config.jwtExpires,
+  });
+
+  res.status(200).json({
+    status: "success",
+    token: token,
+    message: "Password updated succesfully.",
+  });
+}
+export { login, signup, protect, logout, changePassword };
