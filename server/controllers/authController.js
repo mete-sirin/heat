@@ -1,5 +1,6 @@
 import ErrorApi from "../utils/ErrorApi.js";
 import * as userModel from "../models/userModel.js";
+import * as helperFunctions from "../utils/helperFunctions.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { config } from "../utils/config.js";
@@ -60,4 +61,56 @@ async function signup(req, res, next) {
   });
 }
 
-export { login, signup };
+async function protect(req, res, next) {
+  let decoded;
+  try {
+    decoded = helperFunctions.decodeJWTFromReq(req);
+  } catch (err) {
+    return next(err);
+  }
+  const user = await userModel.findUser(decoded.email.trim());
+  //check if the user still exist
+  if (!user) {
+    return next(
+      new ErrorApi("The user this token belongs to no longer exist", 401),
+    );
+  }
+  //check if the user logged out after token was issued
+  if (user.logged_out_at) {
+    const loggedOutSeconds = helperFunctions.formatToUnixSeconds(
+      user.logged_out_at,
+    );
+    if (loggedOutSeconds > decoded.iat) {
+      return next(
+        new ErrorApi("User recently logged out. Please log in again.", 401),
+      );
+    }
+  }
+  //check if the user changed their password after token was issued
+  if (user.password_changed_at) {
+    const passwordChangedAtSeconds = helperFunctions.formatToUnixSeconds(
+      user.password_changed_at,
+    );
+    if (passwordChangedAtSeconds > decoded.iat) {
+      return next(
+        new ErrorApi(
+          "User changed their password and this token is no longer valid.",
+          401,
+        ),
+      );
+    }
+  }
+  req.user = user;
+  next();
+}
+
+async function logout(req, res) {
+  await userModel.logUserOut(req.user.id);
+
+  res.status(200).json({
+    status: "success",
+    message: "User signout successfull",
+  });
+}
+
+export { login, signup, protect, logout };
