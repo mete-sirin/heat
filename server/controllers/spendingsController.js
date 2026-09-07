@@ -48,4 +48,65 @@ async function uploadSpendings(req, res, next) {
   });
 }
 
-export { getSpendings, uploadSpendings };
+async function deleteSpendings(req, res, next) {
+  if (!req.user.id) {
+    return next(
+      new ErrorApi(
+        "No user information provided. Log out and log back in.",
+        400,
+      ),
+    );
+  }
+
+  const deleted = await spendingsModel.deleteSpendings(
+    req.params.id,
+    req.user.id,
+  );
+
+  if (deleted.results.affectedRows === 0) {
+    return next(
+      new ErrorApi("No spending was found with the provided Id", 400),
+    );
+  }
+
+  res.status(204).end();
+}
+
+async function updateSpendings(req, res, next) {
+  if (!req.user.id) {
+    return next(
+      new ErrorApi(
+        "No user information provided. Log out and log back in.",
+        400,
+      ),
+    );
+  }
+
+  const spendingData = req.body?.spendingObj;
+  if (!spendingData) {
+    return next(new ErrorApi("Update information is not sufficent", 400));
+  }
+
+  const spendingObj = {
+    ...spendingData,
+    id: req.params.id,
+  };
+
+  const updatedSpending = await spendingsModel.updateSpendings(
+    spendingObj,
+    req.user.id,
+  );
+
+  if (!updatedSpending.flag) {
+    return next(
+      new ErrorApi("No spending was found with the provided Id", 400),
+    );
+  }
+
+  res.status(200).json({
+    status: "success",
+    data: updatedSpending.data,
+  });
+}
+
+export { getSpendings, uploadSpendings, deleteSpendings, updateSpendings };

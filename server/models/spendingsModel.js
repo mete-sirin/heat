@@ -1,4 +1,5 @@
 import db from "../server.js";
+import sanitizeSpendingInput from "../utils/sanitizeInput.js";
 
 async function getSpendings(id) {
   const [rows] = await db.execute("select * from spendings where user_id = ?", [
@@ -28,4 +29,30 @@ async function uploadSpendings(spendingObj, userId) {
   };
 }
 
-export { getSpendings, uploadSpendings };
+async function deleteSpendings(spendingId, userId) {
+  if (isNaN(spendingId)) spendingId = Number(spendingId);
+
+  const [results] = await db.execute(
+    "delete from spendings where id = ? and user_id=?",
+    [
+      //check the user id aswell
+      spendingId,
+      userId,
+    ],
+  );
+
+  return {
+    results,
+  };
+}
+
+async function updateSpendings(spendingsObj, userId) {
+  const { query, values } = sanitizeSpendingInput(spendingsObj, userId);
+  const [results] = await db.execute(query, values);
+  return {
+    data: spendingsObj,
+    flag: results.affectedRows,
+  };
+}
+
+export { getSpendings, uploadSpendings, deleteSpendings, updateSpendings };
