@@ -222,6 +222,9 @@ importers:
       mysql2:
         specifier: ^3.24.2
         version: 3.24.2(@types/node@26.4.0)
+      zod:
+        specifier: ^4.5.4
+        version: 4.5.4
     devDependencies:
       ndb:
         specifier: ^1.1.5
@@ -1149,6 +1152,9 @@ packages:
 
   yauzl@2.10.0:
     resolution: {integrity: sha512-p4a9I6X6nu6IhoGmBqAcbJy1mlC4j27vEPZX9F4L4/vZT3Lyq1VkFHw/V/PUcB9Buo+DG3iHkT0x3Qya58zc3g==}
+
+  zod@4.5.4:
+    resolution: {integrity: sha512-sC95tT5iHHH9gtpj6A81kh+NEaRAUFN+qlUPDUbRfOMvNf5QCBqsb3WgvnpVtK5Y+4UfA6KqufotuTvMGiTlsA==}
 
 snapshots:
 
@@ -2123,3 +2129,5 @@ snapshots:
     dependencies:
       buffer-crc32: 0.2.13
       fd-slicer: 1.1.0
+
+  zod@4.5.4: {}

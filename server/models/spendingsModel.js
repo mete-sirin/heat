@@ -1,5 +1,5 @@
 import db from "../server.js";
-import sanitizeSpendingInput from "../utils/sanitizeInput.js";
+import { sanitizeSpendingInput } from "../utils/helperFunctions.js";
 
 async function getSpendings(id) {
   const [rows] = await db.execute("select * from spendings where user_id = ?", [
@@ -46,9 +46,14 @@ async function deleteSpendings(spendingId, userId) {
   };
 }
 
-async function updateSpendings(spendingsObj, userId) {
-  const { query, values } = sanitizeSpendingInput(spendingsObj, userId);
+async function updateSpendings(spendingsObj, spendingId, userId) {
+  const { query, values } = sanitizeSpendingInput(
+    spendingsObj,
+    spendingId,
+    userId,
+  );
   const [results] = await db.execute(query, values);
+
   return {
     data: spendingsObj,
     flag: results.affectedRows,
