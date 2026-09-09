@@ -2,11 +2,16 @@ import ErrorApi from "../utils/ErrorApi.js";
 import * as spendingsModel from "../models/spendingsModel.js";
 import {
   createSpendingsSchema,
+  getSpendingsQuerySchema,
   updateSpendingSchema,
 } from "../schemas/spendingsSchema.js";
 
 async function getSpendings(req, res, next) {
-  const spendings = await spendingsModel.getSpendings(req.user.id);
+  const spendingsQuery = getSpendingsQuerySchema.parse(req.query);
+  const spendings = await spendingsModel.getSpendings(
+    req.user.id,
+    spendingsQuery,
+  );
 
   res.status(200).json({
     status: "success",
