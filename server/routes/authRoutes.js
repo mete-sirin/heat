@@ -14,5 +14,6 @@ authRouter.post(
   authController.protect,
   authController.changePassword,
 );
+authRouter.get("/me", authController.protect, authController.refreshUser);
 
 export default authRouter;
