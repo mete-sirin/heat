@@ -1,7 +1,10 @@
 import db from "../server.js";
-import { sanitizeSpendingInput } from "../utils/helperFunctions.js";
+import {
+  buildSelectQuery,
+  sanitizeSpendingInput,
+} from "../utils/helperFunctions.js";
 
-async function getSpendings(userId, queryParams) {
+async function getSpendings(userId, queryObj) {
   const filterRules = {
     spending_category: {
       column: "spending_category",
@@ -30,18 +33,12 @@ async function getSpendings(userId, queryParams) {
     },
   };
 
-  const conditions = ["user_id = ?"]; // "amount=?" "payment_method="?"
-  const values = [userId];
-  for (const [key, value] of Object.entries(queryParams)) {
-    if (filterRules[key]) {
-      conditions.push(`${filterRules[key].column} ${filterRules[key].op} ?`);
-      values.push(value);
-    }
-  }
-
-  const query = `select * from spendings where ${conditions.join(" and ")} order by ${queryParams.sort} ${queryParams.sort_order} limit ? offset ?`;
-  const offset = (queryParams.page - 1) * queryParams.limit;
-  values.push(queryParams.limit, offset);
+  const { query, values } = buildSelectQuery({
+    table: "spendings",
+    userId: userId,
+    queryObj: queryObj,
+    filterRules: filterRules,
+  });
   const [rows] = await db.execute(query, values);
   return rows || null;
 }

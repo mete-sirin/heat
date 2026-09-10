@@ -4,20 +4,20 @@ import * as subscriptionController from "../controllers/subscriptionsController.
 
 const subscriptionRoutes = express.Router();
 
-subscriptionRoutes.get("/", protect, subscriptionController.getSubscriptions);
+subscriptionRoutes.get("/", subscriptionController.getSubscriptions);
 subscriptionRoutes.post(
   "/",
-  protect,
+
   subscriptionController.uploadSubscription,
 );
 subscriptionRoutes.patch(
   "/:id",
-  protect,
+
   subscriptionController.updateSubscription,
 );
 subscriptionRoutes.delete(
   "/:id",
-  protect,
+
   subscriptionController.deleteSubscription,
 );
 
