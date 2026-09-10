@@ -35,7 +35,7 @@ function sanitizeSpendingInput(object, spendingId, userId) {
 
   for (const [keys, values] of Object.entries(object)) {
     if (fieldsTable[keys]) {
-      fields.set(fieldTable[keys], values);
+      fields.set(fieldsTable[keys], values);
     }
   }
 
@@ -47,7 +47,7 @@ function sanitizeSpendingInput(object, spendingId, userId) {
 }
 
 function sanitizeSubscriptionInput(object, subscriptionId, userId) {
-  const fieldTable = {
+  const fieldsTable = {
     subscriptionName: "subscription_name",
     subscriptionCategory: "subscription_category",
     amount: "amount",
@@ -57,8 +57,8 @@ function sanitizeSubscriptionInput(object, subscriptionId, userId) {
   const fields = new Map();
 
   for (const [keys, values] of Object.entries(object)) {
-    if (fieldTable[keys]) {
-      fields.set(fieldTable[keys], values);
+    if (fieldsTable[keys]) {
+      fields.set(fieldsTable[keys], values);
     }
   }
 
@@ -75,10 +75,31 @@ function addDays(dateString, days) {
   return date.toISOString().split("T")[0]; // "YYYY-MM-DD"
 }
 
+function buildSelectQuery({ table, userId, queryObj, filterRules }) {
+  const conditions = ["user_id = ?"];
+  const values = [userId];
+
+  for (const [key, value] of Object.entries(queryObj)) {
+    if (filterRules[key] && value !== undefined) {
+      conditions.push(`${filterRules[key].column} ${filterRules[key].op} ?`);
+      values.push(value);
+    }
+  }
+  let query = `select * from ${table} where ${conditions.join(" and ")} order by ${queryObj.sort} ${queryObj.sort_order} limit ? offset ?`;
+  const offset = (queryObj.page - 1) * queryObj.limit;
+  values.push(queryObj.limit, offset);
+
+  return {
+    query,
+    values,
+  };
+}
+
 export {
   decodeJWTFromReq,
   formatToUnixSeconds,
   sanitizeSpendingInput,
   sanitizeSubscriptionInput,
   addDays,
+  buildSelectQuery,
 };

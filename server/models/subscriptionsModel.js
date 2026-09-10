@@ -1,14 +1,32 @@
 import db from "../server.js";
 import {
   addDays,
+  buildSelectQuery,
   sanitizeSubscriptionInput,
 } from "../utils/helperFunctions.js";
 
-async function getSubscriptions(userId) {
-  const [rows] = await db.query(
-    "select * from subscription where user_id = ?",
-    [userId],
-  );
+async function getSubscriptions(userId, queryObj) {
+  const filterRules = {
+    subscription_category: {
+      column: "subscription_category",
+      op: "=",
+    },
+    amount_gte: {
+      column: "amount",
+      op: ">=",
+    },
+    amount_lte: {
+      column: "amount",
+      op: "<=",
+    },
+  };
+  const { query, values } = buildSelectQuery({
+    table: "subscription",
+    userId: userId,
+    queryObj: queryObj,
+    filterRules: filterRules,
+  });
+  const [rows] = await db.execute(query, values);
   return rows || null;
 }
 

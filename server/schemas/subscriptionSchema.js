@@ -14,4 +14,24 @@ const updateSubscriptionSchema = createSubscriptionSchema
     error: `At least one field must have a value`,
   });
 
-export { createSubscriptionSchema, updateSubscriptionSchema };
+const getSubscriptionQuerySchema = z.object({
+  subscription_category: z
+    .string()
+    .trim()
+    .min(1, "The category must be at least one char long")
+    .optional(),
+  amount_gte: z.coerce.number().optional(),
+  amount_lte: z.coerce.number().optional(),
+  sort: z
+    .enum(["subscription_category", "amount", "start_date"])
+    .default("amount"),
+
+  sort_order: z.enum(["asc", "desc"]).default("desc"),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+export {
+  createSubscriptionSchema,
+  updateSubscriptionSchema,
+  getSubscriptionQuerySchema,
+};

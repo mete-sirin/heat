@@ -2,12 +2,17 @@ import ErrorApi from "../utils/ErrorApi.js";
 import * as subscriptionsModel from "../models/subscriptionsModel.js";
 import {
   createSubscriptionSchema,
+  getSubscriptionQuerySchema,
   updateSubscriptionSchema,
 } from "../schemas/subscriptionSchema.js";
 import { addDays } from "../utils/helperFunctions.js";
 
-async function getSubscriptions(req, res) {
-  const subscriptions = await subscriptionsModel.getSubscriptions(req.user.id);
+async function getSubscriptions(req, res, next) {
+  const queryObj = getSubscriptionQuerySchema.parse(req.query);
+  const subscriptions = await subscriptionsModel.getSubscriptions(
+    req.user.id,
+    queryObj,
+  );
   res.status(200).json({
     status: "success",
     data: subscriptions,
