@@ -4,14 +4,11 @@ import * as helperFunctions from "../utils/helperFunctions.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { config } from "../utils/config.js";
+import { loginAuthSchema, signUpAuthSchema } from "../schemas/authSchema.js";
 
 async function login(req, res, next) {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    return next(new ErrorApi("No credentials provided.", 400));
-  }
-  const user = await userModel.findUser(email.trim());
+  const { email, password } = authSchema.parse(req.body);
+  const user = await userModel.findUser(email);
 
   if (!user) {
     return next(new ErrorApi("Incorrect credentials", 401));
@@ -43,15 +40,7 @@ async function login(req, res, next) {
 }
 
 async function signup(req, res, next) {
-  const { fullName, email, password, passwordConfirm } = req.body;
-
-  if (!fullName?.trim() || !email?.trim() || !password || !passwordConfirm) {
-    return next(new ErrorApi("Please provide all required fields.", 400));
-  }
-
-  if (password !== passwordConfirm) {
-    return next(new ErrorApi("Passwords do not match.", 400));
-  }
+  const { fullName, email, password } = signUpAuthSchema.parse(req.body);
 
   const user = await userModel.createUser(fullName, email, password);
 
@@ -62,12 +51,7 @@ async function signup(req, res, next) {
 }
 
 async function protect(req, res, next) {
-  let decoded;
-  try {
-    decoded = helperFunctions.decodeJWTFromReq(req);
-  } catch (err) {
-    return next(err);
-  }
+  const decoded = helperFunctions.decodeJWTFromReq(req);
   const user = await userModel.findUser(decoded.email.trim());
   //check if the user still exist
   if (!user) {
@@ -143,4 +127,22 @@ async function changePassword(req, res, next) {
     message: "Password updated succesfully.",
   });
 }
-export { login, signup, protect, logout, changePassword };
+
+function refreshUser(req, res) {
+  const user = req.user;
+  const data = {
+    id: user.id,
+    fullName: user.full_name,
+    email: user.email,
+    balance: user.balance,
+    budget: user.budget,
+    isVerified: Boolean(user.is_verified),
+    createdAt: user.created_at,
+  };
+  res.status(200).json({
+    status: "success",
+    data: data,
+  });
+}
+
+export { login, signup, protect, logout, changePassword, refreshUser };
