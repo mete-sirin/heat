@@ -7,7 +7,7 @@ import { config } from "../utils/config.js";
 import { loginAuthSchema, signUpAuthSchema } from "../schemas/authSchema.js";
 
 async function login(req, res, next) {
-  const { email, password } = authSchema.parse(req.body);
+  const { email, password } = loginAuthSchema.parse(req.body);
   const user = await userModel.findUser(email);
 
   if (!user) {
@@ -40,9 +40,11 @@ async function login(req, res, next) {
 }
 
 async function signup(req, res, next) {
-  const { fullName, email, password } = signUpAuthSchema.parse(req.body);
+  const { fullName, email, password, timeZone } = signUpAuthSchema.parse(
+    req.body,
+  );
 
-  const user = await userModel.createUser(fullName, email, password);
+  const user = await userModel.createUser(fullName, email, password, timeZone);
 
   res.status(201).json({
     status: "success",
@@ -137,7 +139,11 @@ function refreshUser(req, res) {
     balance: user.balance,
     budget: user.budget,
     isVerified: Boolean(user.is_verified),
-    createdAt: user.created_at,
+    createdAt: helperFunctions.formatCreatedAtForUser(
+      user.created_at,
+      user.time_zone,
+    ),
+    time_zone: user.time_zone,
   };
   res.status(200).json({
     status: "success",

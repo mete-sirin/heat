@@ -46,7 +46,6 @@ const getSpendingsQuerySchema = z.object({
   end_date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Format must be YYYY-MM-DD")
-    .transform((val) => `${val} 23:59:59`) // it should include this or the last day basically gets omitted
     .optional(),
   sort: z
     .enum(["amount", "created_at", "spending_category"])

@@ -1,4 +1,5 @@
 import z from "zod";
+import { IANAZone } from "luxon";
 
 const loginAuthSchema = z.object({
   email: z.string().trim().pipe(z.email()),
@@ -17,6 +18,11 @@ const signUpAuthSchema = z
       .min(1, "Name field must include at least one char")
       .max(100, "Name field cannot be over 100 chars long"),
     email: z.string().trim().pipe(z.email()),
+    timeZone: z
+      .string()
+      .trim()
+      .refine(IANAZone.isValidZone, "Invalid timezone")
+      .default("Europe/Istanbul"),
     password: z
       .string()
       .min(8, "Your password needs to be at least 8 chars long")

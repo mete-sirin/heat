@@ -2,23 +2,23 @@ import express from "express";
 import { protect } from "../controllers/authController.js";
 import * as subscriptionController from "../controllers/subscriptionsController.js";
 
-const subscriptionRoutes = express.Router();
+const subscriptionRouter = express.Router();
 
-subscriptionRoutes.get("/", subscriptionController.getSubscriptions);
-subscriptionRoutes.post(
+subscriptionRouter.get("/", subscriptionController.getSubscriptions);
+subscriptionRouter.post(
   "/",
 
   subscriptionController.uploadSubscription,
 );
-subscriptionRoutes.patch(
+subscriptionRouter.patch(
   "/:id",
 
   subscriptionController.updateSubscription,
 );
-subscriptionRoutes.delete(
+subscriptionRouter.delete(
   "/:id",
 
   subscriptionController.deleteSubscription,
 );
 
-export default subscriptionRoutes;
+export default subscriptionRouter;
