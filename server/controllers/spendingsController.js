@@ -8,14 +8,15 @@ import {
 
 async function getSpendings(req, res, next) {
   const spendingsQuery = getSpendingsQuerySchema.parse(req.query);
-  const spendings = await spendingsModel.getSpendings(
+  const { data, pagination } = await spendingsModel.getSpendings(
     req.user.id,
     spendingsQuery,
   );
 
   res.status(200).json({
     status: "success",
-    data: spendings,
+    data,
+    pagination,
   });
 }
 

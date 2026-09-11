@@ -9,13 +9,14 @@ import { addDays } from "../utils/helperFunctions.js";
 
 async function getSubscriptions(req, res, next) {
   const queryObj = getSubscriptionQuerySchema.parse(req.query);
-  const subscriptions = await subscriptionsModel.getSubscriptions(
+  const { data, pagination } = await subscriptionsModel.getSubscriptions(
     req.user.id,
     queryObj,
   );
   res.status(200).json({
     status: "success",
-    data: subscriptions,
+    data,
+    pagination,
   });
 }
 

@@ -75,6 +75,17 @@ function addDays(dateString, days) {
   return date.toISOString().split("T")[0]; // "YYYY-MM-DD"
 }
 
+//trying jsdoc for the first time
+/**
+ * Builds SQL queries for filtering, sorting, and paginating records.
+ *
+ * @param {Object} options
+ * @param {string} options.table -  Name of the database table to query.
+ * @param {number} options.userId - User ID used to filter records.
+ * @param {Object} options.queryObj - Query parameters containing filters and pagination.
+ * @param {Object} options.filterRules - Rules for converting query parameters into SQL conditions.
+ * @returns {Object} SQL queries and their parameter values.
+ */
 function buildSelectQuery({ table, userId, queryObj, filterRules }) {
   const conditions = ["user_id = ?"];
   const values = [userId];
@@ -85,13 +96,17 @@ function buildSelectQuery({ table, userId, queryObj, filterRules }) {
       values.push(value);
     }
   }
-  let query = `select * from ${table} where ${conditions.join(" and ")} order by ${queryObj.sort} ${queryObj.sort_order} limit ? offset ?`;
+  const recordQuery = `select * from ${table} where ${conditions.join(" and ")} order by ${queryObj.sort} ${queryObj.sort_order} limit ? offset ?`;
+  const metaDataQuery = `select count(*) as total from ${table} where ${conditions.join(" and ")}`;
   const offset = (queryObj.page - 1) * queryObj.limit;
+  const valuesForMetaData = [...values];
   values.push(queryObj.limit, offset);
 
   return {
-    query,
-    values,
+    recordQuery,
+    metaDataQuery,
+    valuesForRecords: values,
+    valuesForMetaData,
   };
 }
 
