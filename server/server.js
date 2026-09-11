@@ -12,6 +12,8 @@ const db = mysql.createPool({
   user: config.db.user,
   password: config.db.password,
   database: config.db.database,
+  timezone: "Z",
+  dateStrings: ["DATE"],
 });
 
 const server = app.listen(config.port, () =>

@@ -1,10 +1,11 @@
 import db from "../server.js";
 import {
   buildSelectQuery,
+  formatCreatedAtForUser,
   sanitizeSpendingInput,
 } from "../utils/helperFunctions.js";
 
-async function getSpendings(userId, queryObj) {
+async function getSpendings(userId, queryObj, userTimezone) {
   const filterRules = {
     spending_category: {
       column: "spending_category",
@@ -39,12 +40,18 @@ async function getSpendings(userId, queryObj) {
       userId,
       queryObj,
       filterRules,
+      userTimezone,
     });
 
   const [[rows], [results]] = await Promise.all([
     db.execute(recordQuery, valuesForRecords),
     db.execute(metaDataQuery, valuesForMetaData),
   ]);
+
+  rows.forEach((el) => {
+    const formattedTime = formatCreatedAtForUser(el.created_at, userTimezone);
+    el.created_at = formattedTime;
+  });
 
   const { limit, page } = queryObj;
   const totalCount = Number(results[0]?.total ?? 0);
@@ -73,7 +80,7 @@ async function uploadSpendings(spendingObj, userId) {
     spendingName,
     spendingCategory ?? "Generic",
     amount,
-    currency ?? "tr",
+    currency ?? "try",
     paymentMethod ?? "cash",
   ];
 

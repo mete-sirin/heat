@@ -11,6 +11,7 @@ async function getSpendings(req, res, next) {
   const { data, pagination } = await spendingsModel.getSpendings(
     req.user.id,
     spendingsQuery,
+    req.user.time_zone,
   );
 
   res.status(200).json({

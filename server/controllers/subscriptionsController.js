@@ -12,6 +12,7 @@ async function getSubscriptions(req, res, next) {
   const { data, pagination } = await subscriptionsModel.getSubscriptions(
     req.user.id,
     queryObj,
+    req.user.time_zone,
   );
   res.status(200).json({
     status: "success",

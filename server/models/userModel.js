@@ -7,12 +7,12 @@ async function findUser(email) {
   return rows[0] || null;
 }
 
-async function createUser(fullName, email, password) {
+async function createUser(fullName, email, password, timeZone) {
   const sqlQuery =
-    "insert into users (full_name, email, password_hash) values (?, ?, ?)";
+    "insert into users (full_name, email, password_hash, time_zone) values (?, ?, ?, ?)";
   const saltRounds = 10;
   const hash = await bcrypt.hash(password, saltRounds);
-  const values = [fullName, email, hash];
+  const values = [fullName, email, hash, timeZone];
   const [results] = await db.execute(sqlQuery, values);
   return {
     id: results.insertId,

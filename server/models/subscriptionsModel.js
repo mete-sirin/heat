@@ -2,10 +2,11 @@ import db from "../server.js";
 import {
   addDays,
   buildSelectQuery,
+  formatCreatedAtForUser,
   sanitizeSubscriptionInput,
 } from "../utils/helperFunctions.js";
 
-async function getSubscriptions(userId, queryObj) {
+async function getSubscriptions(userId, queryObj, userTimezone) {
   const filterRules = {
     subscription_category: {
       column: "subscription_category",
@@ -26,11 +27,17 @@ async function getSubscriptions(userId, queryObj) {
       userId,
       queryObj,
       filterRules,
+      userTimezone,
     });
   const [[rows], [results]] = await Promise.all([
     db.execute(recordQuery, valuesForRecords),
     db.execute(metaDataQuery, valuesForMetaData),
   ]);
+
+  rows.forEach((el) => {
+    const formattedTime = formatCreatedAtForUser(el.created_at, userTimezone);
+    el.created_at = formattedTime;
+  });
 
   const { limit, page } = queryObj;
   const totalCount = Number(results[0]?.total ?? 0);

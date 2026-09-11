@@ -1,6 +1,7 @@
 import ErrorApi from "./ErrorApi.js";
 import jwt from "jsonwebtoken";
 import { config } from "./config.js";
+import { DateTime } from "luxon";
 
 function decodeJWTFromReq(req) {
   const authorization = req.headers?.authorization;
@@ -86,9 +87,35 @@ function addDays(dateString, days) {
  * @param {Object} options.filterRules - Rules for converting query parameters into SQL conditions.
  * @returns {Object} SQL queries and their parameter values.
  */
-function buildSelectQuery({ table, userId, queryObj, filterRules }) {
+function buildSelectQuery({
+  table,
+  userId,
+  queryObj,
+  filterRules,
+  userTimezone,
+}) {
   const conditions = ["user_id = ?"];
   const values = [userId];
+
+  //need this because spendings and subscriptions are stored as utc
+  //and when the client wants to filter by date they will send local tz
+  //this converts local tz to utc if exist if not nothing happens
+
+  const zone = userTimezone || "UTC";
+
+  if (queryObj.start_date) {
+    queryObj.start_date = DateTime.fromISO(queryObj.start_date, { zone })
+      .startOf("day")
+      .toUTC()
+      .toFormat("yyyy-MM-dd HH:mm:ss");
+  }
+
+  if (queryObj.end_date) {
+    queryObj.end_date = DateTime.fromISO(queryObj.end_date, { zone })
+      .endOf("day")
+      .toUTC()
+      .toFormat("yyyy-MM-dd HH:mm:ss");
+  }
 
   for (const [key, value] of Object.entries(queryObj)) {
     if (filterRules[key] && value !== undefined) {
@@ -110,6 +137,22 @@ function buildSelectQuery({ table, userId, queryObj, filterRules }) {
   };
 }
 
+function getCurrentMonthUTCRange(userTimezone) {
+  //every spending and subcription will be stored using utc so we need to account for the time difference between the user and the utc
+  const nowInUserTz = DateTime.now().setZone(userTimezone);
+  const start = nowInUserTz.startOf("month").toUTC();
+  const end = nowInUserTz.plus({ months: 1 }).startOf("month").toUTC();
+  const format = (dt) => dt.toFormat("yyyy-MM-dd HH:mm:ss");
+  return { start: format(start), end: format(end) };
+}
+
+function formatCreatedAtForUser(createdAtDate, userTimezone) {
+  if (!createdAtDate) return null;
+  const zone = userTimezone || "UTC";
+  const dt = DateTime.fromJSDate(new Date(createdAtDate)).setZone(zone);
+  return dt.isValid ? dt.toFormat("yyyy-MM-dd HH:mm:ss") : null;
+}
+
 export {
   decodeJWTFromReq,
   formatToUnixSeconds,
@@ -117,4 +160,6 @@ export {
   sanitizeSubscriptionInput,
   addDays,
   buildSelectQuery,
+  getCurrentMonthUTCRange,
+  formatCreatedAtForUser,
 };
