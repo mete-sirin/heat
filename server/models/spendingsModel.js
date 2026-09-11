@@ -33,14 +33,34 @@ async function getSpendings(userId, queryObj) {
     },
   };
 
-  const { query, values } = buildSelectQuery({
-    table: "spendings",
-    userId: userId,
-    queryObj: queryObj,
-    filterRules: filterRules,
-  });
-  const [rows] = await db.execute(query, values);
-  return rows || null;
+  const { recordQuery, metaDataQuery, valuesForMetaData, valuesForRecords } =
+    buildSelectQuery({
+      table: "spendings",
+      userId,
+      queryObj,
+      filterRules,
+    });
+
+  const [[rows], [results]] = await Promise.all([
+    db.execute(recordQuery, valuesForRecords),
+    db.execute(metaDataQuery, valuesForMetaData),
+  ]);
+
+  const { limit, page } = queryObj;
+  const totalCount = Number(results[0]?.total ?? 0);
+  const totalPages = Math.ceil(totalCount / limit) || 1;
+
+  return {
+    data: rows,
+    pagination: {
+      totalCount,
+      pageSize: limit,
+      currentPage: page,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
+  };
 }
 
 async function uploadSpendings(spendingObj, userId) {
