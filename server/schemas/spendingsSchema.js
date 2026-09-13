@@ -1,39 +1,62 @@
 import z from "zod";
 
-const currencyEnum = [`try`, `eur`, `usd`];
 const paymentMethodEnum = [`cash`, `creditCard`, `qr`, `debitCard`];
 
-const createSpendingsSchema = z.object({
+const createSpendingSchema = z.object({
   spendingName: z
     .string()
     .trim()
-    .min(1, `The name must be at least one char long`),
+    .min(1, "Spending name must be at least 1 character long"),
   spendingCategory: z
     .string()
     .trim()
-    .min(1, `The category must be at least one char long`)
+    .min(1, "Spending category must be at least 1 character long")
     .optional(),
-  amount: z.number().positive(`Amount must be a positive number`),
-  currency: z.enum(currencyEnum).optional(),
+  amount: z.number().positive("Amount must be a positive number"),
   paymentMethod: z.enum(paymentMethodEnum).optional(),
 });
 
-const updateSpendingSchema = createSpendingsSchema
-  .partial()
+const updateSpendingSchema = z
+  .object({
+    spendingName: z
+      .string()
+      .trim()
+      .min(1, "Spending name must be at least 1 character long")
+      .optional(),
+    spendingCategory: z
+      .string()
+      .trim()
+      .min(1, "Spending category must be at least 1 character long")
+      .optional(),
+    amount: z.number().positive("Amount must be a positive number").optional(),
+    currentAmount: z
+      .number()
+      .positive("Current amount must be a positive number")
+      .optional(),
+    paymentMethod: z.enum(paymentMethodEnum).optional(),
+  })
   .refine(
-    (schema) => Object.values(schema).some((value) => value !== undefined),
-    {
-      error: `At least one field must have a value`,
+    (data) => {
+      const hasAmount = data.amount !== undefined;
+      const hasCurrentAmount = data.currentAmount !== undefined;
+      return hasAmount === hasCurrentAmount;
     },
-  );
+    {
+      message:
+        "Both 'amount' and 'currentAmount' must be provided at the same time",
+      path: ["currentAmount"],
+    },
+  )
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one field must be provided for update",
+  });
 
 const getSpendingsQuerySchema = z.object({
   spending_category: z
     .string()
     .trim()
-    .min(1, "The category must be at least one char long")
+    .min(1, "Spending category must be at least 1 character long")
     .optional(),
-  currency: z.enum(currencyEnum).optional(),
   payment_method: z.enum(paymentMethodEnum).optional(),
   ////
   amount_gte: z.coerce.number().optional(),
@@ -41,11 +64,11 @@ const getSpendingsQuerySchema = z.object({
   ////
   start_date: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Format must be YYYY-MM-DD")
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date format must be YYYY-MM-DD")
     .optional(),
   end_date: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Format must be YYYY-MM-DD")
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date format must be YYYY-MM-DD")
     .optional(),
   sort: z
     .enum(["amount", "created_at", "spending_category"])
@@ -55,4 +78,16 @@ const getSpendingsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
 
-export { createSpendingsSchema, updateSpendingSchema, getSpendingsQuerySchema };
+const checkSpendingIDSchema = z
+  .string()
+  .regex(/^[1-9]\d*$/, {
+    message: "Spending ID must be a positive integer",
+  })
+  .transform(Number);
+
+export {
+  createSpendingSchema,
+  updateSpendingSchema,
+  getSpendingsQuerySchema,
+  checkSpendingIDSchema,
+};

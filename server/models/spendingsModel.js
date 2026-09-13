@@ -1,4 +1,5 @@
 import db from "../server.js";
+import ErrorApi from "../utils/ErrorApi.js";
 import {
   buildSelectQuery,
   formatCreatedAtForUser,
@@ -9,10 +10,6 @@ async function getSpendings(userId, queryObj, userTimezone) {
   const filterRules = {
     spending_category: {
       column: "spending_category",
-      op: "=",
-    },
-    currency: {
-      column: "currency",
       op: "=",
     },
     payment_method: { column: "payment_method", op: "=" },
@@ -70,56 +67,144 @@ async function getSpendings(userId, queryObj, userTimezone) {
   };
 }
 
-async function uploadSpendings(spendingObj, userId) {
-  const { spendingName, spendingCategory, amount, currency, paymentMethod } =
-    spendingObj;
-  const query =
-    "insert into spendings (user_id, spending_name, spending_category, amount, currency, payment_method) values (?, ?, ?, ?, ?, ?)";
-  const values = [
-    userId,
-    spendingName,
-    spendingCategory ?? "Generic",
-    amount,
-    currency ?? "try",
-    paymentMethod ?? "cash",
-  ];
+async function uploadSpending(spendingObj, userId) {
+  const { spendingName, spendingCategory, amount, paymentMethod } = spendingObj;
 
-  const [results] = await db.execute(query, values);
-  return {
-    id: results.insertId,
-    ...spendingObj,
-  };
+  const insertSpendingQuery =
+    "insert into spendings (user_id, spending_name, spending_category, amount, payment_method) values (?, ?, ?, ?, ?)";
+
+  const category = spendingCategory ?? "Generic";
+  const method = paymentMethod ?? "cash";
+
+  const insertSpendingValues = [userId, spendingName, category, amount, method];
+
+  const updateBalanceQuery =
+    "update users set balance = balance + ? where id = ?";
+  const updateBalanceValues = [amount, userId];
+
+  const getUserBalanceQuery = "select balance from users where id = ?";
+
+  const connection = await db.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [spendingResult] = await connection.execute(
+      insertSpendingQuery,
+      insertSpendingValues,
+    );
+    await connection.execute(updateBalanceQuery, updateBalanceValues);
+    const [userRows] = await connection.execute(getUserBalanceQuery, [userId]);
+    await connection.commit();
+    return {
+      spending: {
+        id: spendingResult.insertId,
+        spendingName,
+        spendingCategory: category,
+        amount,
+        paymentMethod: method,
+      },
+      userBalance: userRows[0]?.balance,
+    };
+  } catch (error) {
+    await connection.rollback();
+    if (error instanceof ErrorApi) throw error;
+    throw new ErrorApi("Failed to create spending record", 500);
+  } finally {
+    connection.release();
+  }
 }
 
-async function deleteSpendings(spendingId, userId) {
-  if (isNaN(spendingId)) spendingId = Number(spendingId);
+async function deleteSpending(spendingId, userId) {
+  const getSpendingAmountQuery =
+    "select amount from spendings where id = ? and user_id = ?";
+  const updateBalanceQuery =
+    "update users set balance = balance - ? where id = ?";
+  const deleteSpendingQuery =
+    "delete from spendings where id = ? and user_id = ?";
+  const getUserBalanceQuery = "select balance from users where id = ?";
 
-  const [results] = await db.execute(
-    "delete from spendings where id = ? and user_id=?",
-    [
-      //check the user id aswell
+  const deleteSpendingValues = [spendingId, userId];
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+    const [spendingRows] = await connection.execute(getSpendingAmountQuery, [
       spendingId,
       userId,
-    ],
-  );
+    ]);
 
-  return {
-    results,
-  };
+    if (!spendingRows.length) {
+      throw new ErrorApi("No spending was found with the provided ID", 400);
+    }
+
+    const spendingAmount = spendingRows[0].amount;
+    const updateBalanceValues = [spendingAmount, userId];
+
+    await connection.execute(updateBalanceQuery, updateBalanceValues);
+    await connection.execute(deleteSpendingQuery, deleteSpendingValues);
+    const [userRows] = await connection.execute(getUserBalanceQuery, [userId]);
+    await connection.commit();
+    return {
+      spendingId,
+      userBalance: userRows[0]?.balance,
+    };
+  } catch (error) {
+    await connection.rollback();
+    if (error instanceof ErrorApi) throw error;
+    throw new ErrorApi("Failed to delete spending record", 500);
+  } finally {
+    connection.release();
+  }
 }
 
-async function updateSpendings(spendingsObj, spendingId, userId) {
-  const { query, values } = sanitizeSpendingInput(
-    spendingsObj,
+async function updateSpending(spendingObj, spendingId, userId) {
+  const { updateSpendingQuery, values } = sanitizeSpendingInput(
+    spendingObj,
     spendingId,
     userId,
   );
-  const [results] = await db.execute(query, values);
+  const AmountFlag = spendingObj.amount && spendingObj.currentAmount;
+  const updateBalanceQuery =
+    "update users set balance = balance - ? where id = ? ";
+  const getUserBalanceQuery = "select balance from users where id = ?";
 
-  return {
-    data: spendingsObj,
-    flag: results.affectedRows,
-  };
+  const connection = await db.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    const [spendingUpdateResult] = await connection.execute(
+      updateSpendingQuery,
+      values,
+    );
+
+    if (spendingUpdateResult.affectedRows === 0) {
+      throw new ErrorApi("No spending was found with the provided ID", 400);
+    }
+
+    if (AmountFlag) {
+      const amountDifference = spendingObj.currentAmount - spendingObj.amount;
+      await connection.execute(updateBalanceQuery, [amountDifference, userId]);
+    }
+
+    const [userRows] = await connection.execute(getUserBalanceQuery, [userId]);
+    await connection.commit();
+
+    const { currentAmount, ...cleanSpendingObj } = spendingObj;
+
+    return {
+      spending: {
+        id: spendingId,
+        ...cleanSpendingObj,
+      },
+      userBalance: userRows[0]?.balance,
+    };
+  } catch (err) {
+    await connection.rollback();
+    if (err instanceof ErrorApi) throw err;
+
+    throw new ErrorApi("Failed to update spending record", 500);
+  } finally {
+    connection.release();
+  }
 }
 
-export { getSpendings, uploadSpendings, deleteSpendings, updateSpendings };
+export { getSpendings, uploadSpending, deleteSpending, updateSpending };

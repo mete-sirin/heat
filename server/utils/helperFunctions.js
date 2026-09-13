@@ -24,17 +24,15 @@ function formatToUnixSeconds(timeObj) {
   return Math.floor(new Date(timeObj).getTime() / 1000);
 }
 
-function sanitizeSpendingInput(object, spendingId, userId) {
+function sanitizeSpendingInput(spendingObject, spendingId, userId) {
   const fieldsTable = {
     spendingName: "spending_name",
     spendingCategory: "spending_category",
     amount: "amount",
-    currency: "currency",
     paymentMethod: "payment_method",
   };
   const fields = new Map();
-
-  for (const [keys, values] of Object.entries(object)) {
+  for (const [keys, values] of Object.entries(spendingObject)) {
     if (fieldsTable[keys]) {
       fields.set(fieldsTable[keys], values);
     }
@@ -42,9 +40,9 @@ function sanitizeSpendingInput(object, spendingId, userId) {
 
   const values = [...fields.values(), spendingId, userId];
   const setClause = [...fields.keys()].map((key) => `${key} = ?`).join(", ");
-  const query = `update spendings set ${setClause} where id = ? and user_id = ?`;
+  const updateSpendingQuery = `update spendings set ${setClause} where id = ? and user_id = ?`;
 
-  return { query, values };
+  return { updateSpendingQuery, values };
 }
 
 function sanitizeSubscriptionInput(object, subscriptionId, userId) {
