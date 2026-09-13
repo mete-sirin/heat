@@ -1,12 +1,11 @@
 import express from "express";
-import { protect } from "../controllers/authController.js";
 import * as spendingsController from "../controllers/spendingsController.js";
 
 const spendingsRouter = express.Router();
 
 spendingsRouter.get("/", spendingsController.getSpendings);
-spendingsRouter.post("/", spendingsController.uploadSpendings);
-spendingsRouter.delete("/:id", spendingsController.deleteSpendings);
-spendingsRouter.patch("/:id", spendingsController.updateSpendings);
+spendingsRouter.post("/", spendingsController.uploadSpending);
+spendingsRouter.delete("/:id", spendingsController.deleteSpending);
+spendingsRouter.patch("/:id", spendingsController.updateSpending);
 
 export default spendingsRouter;
