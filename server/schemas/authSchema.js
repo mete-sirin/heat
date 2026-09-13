@@ -33,4 +33,28 @@ const signUpAuthSchema = z
     error: "Passwords don't match",
     path: ["passwordConfirm"],
   });
-export { loginAuthSchema, signUpAuthSchema };
+
+const updateUserSchema = z
+  .object({
+    fullName: z
+      .string()
+      .trim()
+      .min(1, "Name field must include at least one char")
+      .max(100, "Name field cannot be over 100 chars long")
+      .optional(),
+    timeZone: z
+      .string()
+      .trim()
+      .refine(IANAZone.isValidZone, "Invalid timezone")
+      .optional(),
+    budget: z.number().positive().optional(),
+  })
+  .refine(
+    (data) => {
+      if (Object.keys(data).length === 0) return false;
+      else return true;
+    },
+    { error: "At least one field value must be provided" },
+  );
+
+export { loginAuthSchema, signUpAuthSchema, updateUserSchema };

@@ -151,6 +151,28 @@ function formatCreatedAtForUser(createdAtDate, userTimezone) {
   return dt.isValid ? dt.toFormat("yyyy-MM-dd HH:mm:ss") : null;
 }
 
+function buildUpdateUserQuery(userInformationObj, userId) {
+  const fieldsTable = {
+    fullName: "full_name",
+    budget: "budget",
+    timeZone: "time_zone",
+  };
+  const conditions = [];
+  const updateUsersQueryValues = [];
+  for (const [key, value] of Object.entries(userInformationObj)) {
+    if (fieldsTable[key]) {
+      conditions.push(`${fieldsTable[key]} = ?`);
+      updateUsersQueryValues.push(value);
+    }
+  }
+  updateUsersQueryValues.push(userId);
+  const updateUsersQuery = `update users set ${conditions.join(", ")} where id = ?`;
+  return {
+    updateUsersQuery,
+    updateUsersQueryValues,
+  };
+}
+
 export {
   decodeJWTFromReq,
   formatToUnixSeconds,
@@ -160,4 +182,5 @@ export {
   buildSelectQuery,
   getCurrentMonthUTCRange,
   formatCreatedAtForUser,
+  buildUpdateUserQuery,
 };
