@@ -1,6 +1,7 @@
 import db from "../server.js";
 import ErrorApi from "../utils/ErrorApi.js";
 import bcrypt from "bcryptjs";
+import * as helperFunctions from "../utils/helperFunctions.js";
 
 async function findUser(email) {
   const [rows] = await db.execute("select * from users where email=?", [email]);
@@ -43,5 +44,17 @@ async function checkandUpdatePassword(currentPassword, newPassword, user) {
 
   await db.execute(query, values);
 }
+async function updateUserInformation(userInformationObj, userId) {
+  const { updateUsersQuery, updateUsersQueryValues } =
+    helperFunctions.buildUpdateUserQuery(userInformationObj, userId);
+  const [results] = await db.execute(updateUsersQuery, updateUsersQueryValues);
+  return results;
+}
 
-export { findUser, createUser, logUserOut, checkandUpdatePassword };
+export {
+  findUser,
+  createUser,
+  logUserOut,
+  checkandUpdatePassword,
+  updateUserInformation,
+};

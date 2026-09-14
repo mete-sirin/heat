@@ -4,7 +4,11 @@ import * as helperFunctions from "../utils/helperFunctions.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { config } from "../utils/config.js";
-import { loginAuthSchema, signUpAuthSchema } from "../schemas/authSchema.js";
+import {
+  loginAuthSchema,
+  signUpAuthSchema,
+  updateUserSchema,
+} from "../schemas/authSchema.js";
 
 async function login(req, res, next) {
   const { email, password } = loginAuthSchema.parse(req.body);
@@ -151,4 +155,33 @@ function refreshUser(req, res) {
   });
 }
 
-export { login, signup, protect, logout, changePassword, refreshUser };
+async function updateUserInformation(req, res, next) {
+  const userInformationObj = updateUserSchema.parse(req.body);
+  const userId = req.user.id;
+  const results = await userModel.updateUserInformation(
+    userInformationObj,
+    userId,
+  );
+  if (results.affectedRows === 0) {
+    return next(new ErrorApi("No user found with the provided Id", 400));
+  }
+  res.status(200).json({
+    status: "success",
+    data: {
+      user: {
+        id: userId,
+        ...userInformationObj,
+      },
+    },
+  });
+}
+
+export {
+  login,
+  signup,
+  protect,
+  logout,
+  changePassword,
+  refreshUser,
+  updateUserInformation,
+};
