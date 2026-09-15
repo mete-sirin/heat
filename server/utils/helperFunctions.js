@@ -50,7 +50,6 @@ function sanitizeSubscriptionInput(object, subscriptionId, userId) {
     subscriptionName: "subscription_name",
     subscriptionCategory: "subscription_category",
     amount: "amount",
-    startDate: "start_date",
     length: "length",
   };
   const fields = new Map();
@@ -63,15 +62,9 @@ function sanitizeSubscriptionInput(object, subscriptionId, userId) {
 
   const values = [...fields.values(), subscriptionId, userId];
   const setClause = [...fields.keys()].map((key) => `${key} = ?`).join(", ");
-  const query = `update subscription set ${setClause} where id = ? and user_id = ?`;
+  const query = `update subscriptions set ${setClause} where id = ? and user_id = ?`;
 
   return { query, values };
-}
-
-function addDays(dateString, days) {
-  const date = new Date(dateString);
-  date.setDate(date.getDate() + days);
-  return date.toISOString().split("T")[0]; // "YYYY-MM-DD"
 }
 
 //trying jsdoc for the first time
@@ -85,13 +78,7 @@ function addDays(dateString, days) {
  * @param {Object} options.filterRules - Rules for converting query parameters into SQL conditions.
  * @returns {Object} SQL queries and their parameter values.
  */
-function buildSelectQuery({
-  table,
-  userId,
-  queryObj,
-  filterRules,
-  userTimezone,
-}) {
+function buildSelectQuery({ table, userId, queryObj, filterRules, userTimezone }) {
   const conditions = ["user_id = ?"];
   const values = [userId];
 
@@ -102,17 +89,11 @@ function buildSelectQuery({
   const zone = userTimezone || "UTC";
 
   if (queryObj.start_date) {
-    queryObj.start_date = DateTime.fromISO(queryObj.start_date, { zone })
-      .startOf("day")
-      .toUTC()
-      .toFormat("yyyy-MM-dd HH:mm:ss");
+    queryObj.start_date = DateTime.fromISO(queryObj.start_date, { zone }).startOf("day").toUTC().toFormat("yyyy-MM-dd HH:mm:ss");
   }
 
   if (queryObj.end_date) {
-    queryObj.end_date = DateTime.fromISO(queryObj.end_date, { zone })
-      .endOf("day")
-      .toUTC()
-      .toFormat("yyyy-MM-dd HH:mm:ss");
+    queryObj.end_date = DateTime.fromISO(queryObj.end_date, { zone }).endOf("day").toUTC().toFormat("yyyy-MM-dd HH:mm:ss");
   }
 
   for (const [key, value] of Object.entries(queryObj)) {
@@ -173,14 +154,19 @@ function buildUpdateUserQuery(userInformationObj, userId) {
   };
 }
 
+function formatUserTimeToUTc(timeValue) {
+  const userTime = DateTime.fromISO(timeValue);
+  const formattedTime = userTime.setZone("utc").toISODate();
+  return formattedTime;
+}
 export {
   decodeJWTFromReq,
   formatToUnixSeconds,
   sanitizeSpendingInput,
   sanitizeSubscriptionInput,
-  addDays,
   buildSelectQuery,
   getCurrentMonthUTCRange,
   formatCreatedAtForUser,
   buildUpdateUserQuery,
+  formatUserTimeToUTc,
 };

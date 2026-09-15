@@ -6,7 +6,7 @@ import {
 
 async function getSummary(userId, userTimeZone) {
   const lastSpendingsQuery = `select * from spendings where user_id = ? and created_at >= ? and created_at < ? order by created_at desc`;
-  const subcriptioninfoQuery = `select * from subscription where user_id = ? order by amount desc`;
+  const subcriptioninfoQuery = `select * from subscriptions where user_id = ? order by amount desc`;
   const userinfoQuery = `select full_name, budget, balance from users where id = ?`;
   const { start, end } = getCurrentMonthUTCRange(userTimeZone);
   const values = [userId, start, end]; //2026-09-01 00:00:00,2026-10-01 00:00:00]

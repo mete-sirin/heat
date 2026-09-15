@@ -1,95 +1,73 @@
-import ErrorApi from "../utils/ErrorApi.js";
 import * as subscriptionsModel from "../models/subscriptionsModel.js";
 import {
+  checkSubscriptionIDSchema,
   createSubscriptionSchema,
   getSubscriptionQuerySchema,
   updateSubscriptionSchema,
 } from "../schemas/subscriptionSchema.js";
-import { addDays } from "../utils/helperFunctions.js";
 
 async function getSubscriptions(req, res, next) {
   const queryObj = getSubscriptionQuerySchema.parse(req.query);
-  const { data, pagination } = await subscriptionsModel.getSubscriptions(
-    req.user.id,
-    queryObj,
-    req.user.time_zone,
-  );
+  const { data, pagination } = await subscriptionsModel.getSubscriptions(req.user.id, queryObj, req.user.time_zone);
   res.status(200).json({
     status: "success",
-    data,
+    data: {
+      subscriptions: data,
+    },
     pagination,
   });
 }
 
 async function uploadSubscription(req, res, next) {
-  //assume the data is correct later implement zod
   const subscriptionObj = createSubscriptionSchema.parse(req.body);
 
-  const result = await subscriptionsModel.uploadSubscription(
-    subscriptionObj,
-    req.user.id,
-  );
+  const { subscription, userBalance } = await subscriptionsModel.uploadSubscription(subscriptionObj, req.user.id, req.user.time_zone);
 
   res.status(201).json({
     status: "success",
-    data: result,
+    message: "Subscription successfully added",
+    data: {
+      subscription,
+      userBalance,
+    },
   });
 }
 
 async function deleteSubscription(req, res, next) {
-  const subscriptionId = Number(req.params.id);
-  if (!Number.isInteger(subscriptionId) || subscriptionId < 1) {
-    return next(new ErrorApi("Invalid subscription id", 400));
-  }
+  const subscriptionId = checkSubscriptionIDSchema.parse(req.params.id);
 
-  const results = await subscriptionsModel.deleteSubscriptions(
-    subscriptionId,
-    req.user.id,
-  );
-
-  if (results.affectedRows === 0) {
-    return next(
-      new ErrorApi(
-        "No subscription was found with provided id belonging to user account",
-        400,
-      ),
-    );
-  }
-
-  res.status(204).end();
-}
-
-async function updateSubscription(req, res, next) {
-  const subscriptionId = Number(req.params.id);
-  if (!Number.isInteger(subscriptionId) || subscriptionId < 1) {
-    return next(new ErrorApi("Invalid subscription id", 400));
-  }
-
-  //assume the info is in the right shape
-  const subscriptionObj = updateSubscriptionSchema.parse(req.body);
-  const updatedSubscription = await subscriptionsModel.updateSubscriptions(
-    subscriptionObj,
-    subscriptionId,
-    req.user.id,
-  );
-  if (updatedSubscription.flag === 0) {
-    return next(
-      new ErrorApi(
-        " No subscription was found with provided id belonging to user account",
-        400,
-      ),
-    );
-  }
+  const { userBalance } = await subscriptionsModel.deleteSubscription(subscriptionId, req.user.id);
 
   res.status(200).json({
     status: "success",
-    data: updatedSubscription.data,
+    message: "Subscription successfully deleted",
+    data: {
+      subscriptionId,
+      userBalance,
+    },
   });
 }
 
-export {
-  getSubscriptions,
-  uploadSubscription,
-  deleteSubscription,
-  updateSubscription,
-};
+async function updateSubscription(req, res, next) {
+  const subscriptionId = checkSubscriptionIDSchema.parse(req.params.id);
+
+  //assume the info is in the right shape
+  const subscriptionObj = updateSubscriptionSchema.parse(req.body);
+  const { subscription, userBalance } =
+    await subscriptionsModel.updateSubscription(
+      subscriptionObj,
+      subscriptionId,
+      req.user.id,
+    );
+
+  res.status(200).json({
+    status: "success",
+    message: "Subscription successfully updated",
+    data: {
+      subscription,
+      userBalance,
+    },
+  });
+}
+
+export { getSubscriptions, uploadSubscription, deleteSubscription, updateSubscription };
