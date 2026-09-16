@@ -3,12 +3,8 @@ import * as userModel from "../models/userModel.js";
 import * as helperFunctions from "../utils/helperFunctions.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { config } from "../utils/config.js";
-import {
-  loginAuthSchema,
-  signUpAuthSchema,
-  updateUserSchema,
-} from "../schemas/authSchema.js";
+import { config, cookieOptions } from "../utils/config.js";
+import { loginAuthSchema, signUpAuthSchema, updateUserSchema } from "../schemas/authSchema.js";
 
 async function login(req, res, next) {
   const { email, password } = loginAuthSchema.parse(req.body);
@@ -32,21 +28,21 @@ async function login(req, res, next) {
     expiresIn: config.jwtExpires,
   });
 
-  res.status(200).json({
-    status: "success",
-    token: jwtToken,
-    data: {
-      id: user.id,
-      fullName: user.full_name,
-      email: user.email,
-    },
-  });
+  res
+    .status(200)
+    .cookie("access_token", jwtToken, cookieOptions)
+    .json({
+      status: "success",
+      data: {
+        id: user.id,
+        fullName: user.full_name,
+        email: user.email,
+      },
+    });
 }
 
 async function signup(req, res, next) {
-  const { fullName, email, password, timeZone } = signUpAuthSchema.parse(
-    req.body,
-  );
+  const { fullName, email, password, timeZone } = signUpAuthSchema.parse(req.body);
 
   const user = await userModel.createUser(fullName, email, password, timeZone);
 
@@ -61,33 +57,20 @@ async function protect(req, res, next) {
   const user = await userModel.findUser(decoded.email.trim());
   //check if the user still exist
   if (!user) {
-    return next(
-      new ErrorApi("The user this token belongs to no longer exist", 401),
-    );
+    return next(new ErrorApi("The user this token belongs to no longer exist", 401));
   }
   //check if the user logged out after token was issued
   if (user.logged_out_at) {
-    const loggedOutSeconds = helperFunctions.formatToUnixSeconds(
-      user.logged_out_at,
-    );
+    const loggedOutSeconds = helperFunctions.formatToUnixSeconds(user.logged_out_at);
     if (loggedOutSeconds > decoded.iat) {
-      return next(
-        new ErrorApi("User recently logged out. Please log in again.", 401),
-      );
+      return next(new ErrorApi("User recently logged out. Please log in again.", 401));
     }
   }
   //check if the user changed their password after token was issued
   if (user.password_changed_at) {
-    const passwordChangedAtSeconds = helperFunctions.formatToUnixSeconds(
-      user.password_changed_at,
-    );
+    const passwordChangedAtSeconds = helperFunctions.formatToUnixSeconds(user.password_changed_at);
     if (passwordChangedAtSeconds > decoded.iat) {
-      return next(
-        new ErrorApi(
-          "User changed their password and this token is no longer valid.",
-          401,
-        ),
-      );
+      return next(new ErrorApi("User changed their password and this token is no longer valid.", 401));
     }
   }
   req.user = user;
@@ -95,11 +78,16 @@ async function protect(req, res, next) {
 }
 
 async function logout(req, res) {
-  await userModel.logUserOut(req.user.id);
+  const decoded = helperFunctions.decodeJWTFromReq(req);
+  const user = await userModel.findUser(decoded.email.trim());
+  if (user) {
+    await userModel.logUserOut(user.id);
+  }
+  // If token is missing, invalid, or already expired, proceed to clear cookie
 
-  res.status(200).json({
+  res.status(200).clearCookie("access_token", cookieOptions).json({
     status: "success",
-    message: "User signout successfull",
+    message: "User signout successful",
   });
 }
 
@@ -112,11 +100,7 @@ async function changePassword(req, res, next) {
     return next(new ErrorApi("Passwords don't match. Check again.", 400));
   }
 
-  await userModel.checkandUpdatePassword(
-    currentPassword,
-    newPassword,
-    req.user,
-  );
+  await userModel.checkandUpdatePassword(currentPassword, newPassword, req.user);
 
   const payload = {
     id: req.user.id,
@@ -127,10 +111,9 @@ async function changePassword(req, res, next) {
     expiresIn: config.jwtExpires,
   });
 
-  res.status(200).json({
+  res.status(200).cookie("access_token", token, cookieOptions).json({
     status: "success",
-    token: token,
-    message: "Password updated succesfully.",
+    message: "Password updated successfully.",
   });
 }
 
@@ -143,10 +126,7 @@ function refreshUser(req, res) {
     balance: user.balance,
     budget: user.budget,
     isVerified: Boolean(user.is_verified),
-    createdAt: helperFunctions.formatCreatedAtForUser(
-      user.created_at,
-      user.time_zone,
-    ),
+    createdAt: helperFunctions.formatCreatedAtForUser(user.created_at, user.time_zone),
     time_zone: user.time_zone,
   };
   res.status(200).json({
@@ -158,10 +138,7 @@ function refreshUser(req, res) {
 async function updateUserInformation(req, res, next) {
   const userInformationObj = updateUserSchema.parse(req.body);
   const userId = req.user.id;
-  const results = await userModel.updateUserInformation(
-    userInformationObj,
-    userId,
-  );
+  const results = await userModel.updateUserInformation(userInformationObj, userId);
   if (results.affectedRows === 0) {
     return next(new ErrorApi("No user found with the provided Id", 400));
   }
@@ -176,12 +153,4 @@ async function updateUserInformation(req, res, next) {
   });
 }
 
-export {
-  login,
-  signup,
-  protect,
-  logout,
-  changePassword,
-  refreshUser,
-  updateUserInformation,
-};
+export { login, signup, protect, logout, changePassword, refreshUser, updateUserInformation };
