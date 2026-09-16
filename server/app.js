@@ -1,4 +1,5 @@
 import authRouter from "./routes/authRoutes.js";
+import cookieParser from "cookie-parser";
 import handleErrors from "./middleware/errorMiddleware.js";
 import express from "express";
 import { protect } from "./controllers/authController.js";
@@ -8,6 +9,7 @@ import summaryRouter from "./routes/summaryRoutes.js";
 const app = express();
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/spendings", protect, spendingsRouter);

@@ -1,5 +1,13 @@
 import "dotenv/config";
 
+export const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax",
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+  path: "/",
+};
+
 export const config = {
   port: Number(process.env.PORT) || 3000,
   db: {
@@ -10,4 +18,5 @@ export const config = {
   },
   jwtSecret: process.env.JWT_SECRET,
   jwtExpires: process.env.JWT_EXPIRES_IN,
+  cookieOptions,
 };
