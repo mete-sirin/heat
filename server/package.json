@@ -14,11 +14,11 @@
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
-      "version": "11.24.0",
+      "version": "12.4.2",
       "onFail": "download"
     }
   },
-  "packageManager": "pnpm@11.24.0",
+  "packageManager": "pnpm@12.4.2",
   "type": "module",
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -28,6 +28,7 @@
     "jsonwebtoken": "^9.0.3",
     "luxon": "^3.7.2",
     "mysql2": "^3.24.2",
+    "resend": "^6.28.1",
     "zod": "^4.5.4"
   },
   "devDependencies": {

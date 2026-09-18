@@ -19,4 +19,5 @@ export const config = {
   jwtSecret: process.env.JWT_SECRET,
   jwtExpires: process.env.JWT_EXPIRES_IN,
   cookieOptions,
+  resendKey: process.env.RESEND_API_KEY,
 };

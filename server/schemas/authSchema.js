@@ -12,21 +12,10 @@ const loginAuthSchema = z.object({
 
 const signUpAuthSchema = z
   .object({
-    fullName: z
-      .string()
-      .trim()
-      .min(1, "Name field must include at least one char")
-      .max(100, "Name field cannot be over 100 chars long"),
+    fullName: z.string().trim().min(1, "Name field must include at least one char").max(100, "Name field cannot be over 100 chars long"),
     email: z.string().trim().pipe(z.email()),
-    timeZone: z
-      .string()
-      .trim()
-      .refine(IANAZone.isValidZone, "Invalid timezone")
-      .default("Europe/Istanbul"),
-    password: z
-      .string()
-      .min(8, "Your password needs to be at least 8 chars long")
-      .max(64, "Password can only be 64 chars long"),
+    timeZone: z.string().trim().refine(IANAZone.isValidZone, "Invalid timezone").default("Europe/Istanbul"),
+    password: z.string().min(8, "Your password needs to be at least 8 chars long").max(64, "Password can only be 64 chars long"),
     passwordConfirm: z.string(),
   })
   .refine((schema) => schema.password === schema.passwordConfirm, {
@@ -42,11 +31,7 @@ const updateUserSchema = z
       .min(1, "Name field must include at least one char")
       .max(100, "Name field cannot be over 100 chars long")
       .optional(),
-    timeZone: z
-      .string()
-      .trim()
-      .refine(IANAZone.isValidZone, "Invalid timezone")
-      .optional(),
+    timeZone: z.string().trim().refine(IANAZone.isValidZone, "Invalid timezone").optional(),
     budget: z.number().positive().optional(),
   })
   .refine(
@@ -56,5 +41,5 @@ const updateUserSchema = z
     },
     { error: "At least one field value must be provided" },
   );
-
-export { loginAuthSchema, signUpAuthSchema, updateUserSchema };
+const emailSchema = z.string().trim().pipe(z.email());
+export { loginAuthSchema, signUpAuthSchema, updateUserSchema, emailSchema };
