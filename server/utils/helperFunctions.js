@@ -9,13 +9,13 @@ function decodeJWTFromReq(req) {
     token = req.headers.authorization.split(" ")[1]?.trim();
   }
   if (!token) {
-    throw new ErrorApi("No JWT provided", 401);
+    throw new ErrorApi("No JWT provided.", 401);
   }
   try {
     const decoded = jwt.verify(token, config.jwtSecret);
     return decoded;
   } catch {
-    throw new ErrorApi("Invalid or expired JWT", 401);
+    throw new ErrorApi("Invalid or expired JWT.", 401);
   }
 }
 

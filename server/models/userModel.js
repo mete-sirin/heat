@@ -34,7 +34,7 @@ async function logUserOut(id) {
 async function checkandUpdatePassword(currentPassword, newPassword, user) {
   const passwordFlag = await bcrypt.compare(currentPassword, user.password_hash);
   if (!passwordFlag) {
-    throw new ErrorApi("Incorrect current password", 401);
+    throw new ErrorApi("Incorrect current password.", 401);
   }
 
   const saltRounds = 10;
@@ -88,9 +88,55 @@ async function updateVerificationToken(email) {
     email,
   ]);
   if (result.affectedRows === 0) {
-    throw new ErrorApi("An error has happened while trying to update user record", 500);
+    throw new ErrorApi("An error occurred while updating the user record.", 500);
   }
   return rawMailToken;
 }
 
-export { findUser, createUser, logUserOut, checkandUpdatePassword, updateUserInformation, verifyMail, updateVerificationToken };
+async function resetPasswordToken(email) {
+  const [rows] = await db.execute("select * from users where email = ?", [email]);
+  if (rows.length === 0) return null;
+  const user = rows[0];
+  const rawResetToken = crypto.randomBytes(32).toString("hex");
+  const resetHash = crypto.createHash("sha256").update(rawResetToken).digest("hex");
+  const resetExpiryDate = new Date(Date.now() + 30 * 60 * 1000);
+  const [result] = await db.execute("update users set reset_hash = ?, reset_expires_at = ? where email = ?", [
+    resetHash,
+    resetExpiryDate,
+    email,
+  ]);
+  if (result.affectedRows === 0) {
+    throw new ErrorApi("An error occurred while updating the user record.", 500);
+  }
+  return rawResetToken;
+}
+
+async function resetPassword(password, incomingHash) {
+  const [rows] = await db.execute("select id, reset_expires_at from users where reset_hash = ?", [incomingHash]);
+  if (rows.length === 0) throw new ErrorApi("The token is invalid. Please request a new reset email.", 400);
+  const user = rows[0];
+  if (new Date(user.reset_expires_at) < new Date()) {
+    throw new ErrorApi("Reset password token has expired. Please request a new one.", 400);
+  }
+
+  const saltRounds = 10;
+  const passwordHash = await bcrypt.hash(password, saltRounds);
+  const query =
+    "update users set password_hash = ?, password_changed_at = NOW(), reset_hash = NULL, reset_expires_at = NULL where id = ?";
+  const values = [passwordHash, user.id];
+  const [results] = await db.execute(query, values);
+  if (results.affectedRows === 0) throw new ErrorApi("A problem occurred while updating the password.", 500);
+  return true;
+}
+
+export {
+  findUser,
+  createUser,
+  logUserOut,
+  checkandUpdatePassword,
+  updateUserInformation,
+  verifyMail,
+  updateVerificationToken,
+  resetPasswordToken,
+  resetPassword,
+};

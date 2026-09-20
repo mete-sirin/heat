@@ -15,7 +15,7 @@ function handleErrors(err, req, res, next) {
 
     return res.status(400).json({
       status: "error",
-      message: "validation error",
+      message: "Validation error.",
       errors: errors,
     });
   }
@@ -23,7 +23,7 @@ function handleErrors(err, req, res, next) {
   if (err.code === "ER_DUP_ENTRY") {
     return res.status(409).json({
       status: "error",
-      message: `Provided value already exist in the database`,
+      message: "The provided value already exists in the database.",
     });
   }
 
