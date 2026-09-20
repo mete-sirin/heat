@@ -5,24 +5,31 @@ import * as helperFunctions from "../utils/helperFunctions.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { config, cookieOptions } from "../utils/config.js";
-import { emailSchema, loginAuthSchema, signUpAuthSchema, updateUserSchema } from "../schemas/authSchema.js";
-import sendVerificationMail from "../services/emailService.js";
+import {
+  emailSchema,
+  loginAuthSchema,
+  resetPasswordSchema,
+  signUpAuthSchema,
+  tokenSchema,
+  updateUserSchema,
+} from "../schemas/authSchema.js";
+import { sendVerificationMail, sendResetMail } from "../services/emailService.js";
 
 async function login(req, res, next) {
   const { email, password } = loginAuthSchema.parse(req.body);
   const user = await userModel.findUser(email);
 
   if (!user) {
-    return next(new ErrorApi("Incorrect credentials", 401));
+    return next(new ErrorApi("Incorrect credentials.", 401));
   }
   if (!user.is_verified) {
     //res.redirect("send_verification_page", 302);
-    return next(new ErrorApi("Email not verified", 400));
+    return next(new ErrorApi("Email is not verified.", 400));
   }
   //user.password=hash value from the server
   const passwordFlag = await bcrypt.compare(password, user.password_hash);
   if (!passwordFlag) {
-    return next(new ErrorApi("Incorrect credentials", 401));
+    return next(new ErrorApi("Incorrect credentials.", 401));
   }
 
   const payload = {
@@ -80,7 +87,7 @@ async function protect(req, res, next) {
   const user = await userModel.findUser(decoded.email.trim());
   //check if the user still exist
   if (!user) {
-    return next(new ErrorApi("The user this token belongs to no longer exist", 401));
+    return next(new ErrorApi("The user associated with this token no longer exists.", 401));
   }
   //check if the user logged out after token was issued
   if (user.logged_out_at) {
@@ -110,17 +117,17 @@ async function logout(req, res) {
 
   res.status(200).clearCookie("access_token", cookieOptions).json({
     status: "success",
-    message: "User signout successful",
+    message: "User signout successful.",
   });
 }
 
 async function changePassword(req, res, next) {
   const { currentPassword, newPassword, newPasswordConfirm } = req.body;
   if (!currentPassword || !newPassword || !newPasswordConfirm) {
-    return next(new ErrorApi("Missing fields.", 400));
+    return next(new ErrorApi("Missing required fields.", 400));
   }
   if (newPassword !== newPasswordConfirm) {
-    return next(new ErrorApi("Passwords don't match. Check again.", 400));
+    return next(new ErrorApi("Passwords don't match.", 400));
   }
 
   await userModel.checkandUpdatePassword(currentPassword, newPassword, req.user);
@@ -163,7 +170,7 @@ async function updateUserInformation(req, res, next) {
   const userId = req.user.id;
   const results = await userModel.updateUserInformation(userInformationObj, userId);
   if (results.affectedRows === 0) {
-    return next(new ErrorApi("No user found with the provided Id", 400));
+    return next(new ErrorApi("No user found with the provided ID.", 400));
   }
   res.status(200).json({
     status: "success",
@@ -177,17 +184,14 @@ async function updateUserInformation(req, res, next) {
 }
 
 async function verifyMail(req, res, next) {
-  const { token } = req.query;
-  if (!token) {
-    return next(new ErrorApi("No token was provided", 400));
-  }
+  const token = tokenSchema.parse(req.query?.token);
   const incomingHash = crypto.createHash("sha256").update(token).digest("hex");
   const result = await userModel.verifyMail(incomingHash);
 
   // res.redirect("frontendurl") create a success page
   res.status(200).json({
     status: "success",
-    message: result.alreadyVerified ? "Email is already verified" : "Email has been successfully verified",
+    message: result.alreadyVerified ? "Email is already verified." : "Email has been successfully verified.",
   });
 }
 
@@ -199,7 +203,7 @@ async function resendMail(req, res, next) {
   if (rawMailToken) {
     const isSend = await sendVerificationMail(email, rawMailToken);
     if (!isSend) {
-      return next(new ErrorApi("Failed to send the mail please try again", 500));
+      return next(new ErrorApi("Failed to send the email. Please try again.", 500));
     }
   }
 
@@ -209,4 +213,42 @@ async function resendMail(req, res, next) {
   });
 }
 
-export { login, signup, protect, logout, changePassword, refreshUser, updateUserInformation, verifyMail, resendMail };
+async function sendResetPasswordMail(req, res, next) {
+  const email = emailSchema.parse(req.body?.email);
+  const resetToken = await userModel.resetPasswordToken(email);
+  if (resetToken) {
+    const hasSent = await sendResetMail(email, resetToken);
+    if (!hasSent) {
+      return next(new ErrorApi("Failed to send the email. Please try again.", 500));
+    }
+  }
+  res.status(200).json({
+    status: "success",
+    message: "If an account with this email exists, a password reset email has been sent.",
+  });
+}
+
+async function resetPassword(req, res, next) {
+  const { password } = resetPasswordSchema.parse(req.body);
+  const token = tokenSchema.parse(req.query?.token);
+  const incomingHash = crypto.createHash("sha256").update(token).digest("hex");
+  const result = await userModel.resetPassword(password, incomingHash);
+  if (!result) return next(new ErrorApi("A problem occurred while updating the password.", 500));
+  res.status(200).json({
+    status: "success",
+    message: "Account password has been succesfully changed.",
+  });
+}
+export {
+  login,
+  signup,
+  protect,
+  logout,
+  changePassword,
+  refreshUser,
+  updateUserInformation,
+  verifyMail,
+  resendMail,
+  sendResetPasswordMail,
+  resetPassword,
+};

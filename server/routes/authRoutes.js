@@ -10,4 +10,6 @@ authRouter.get("/me", authController.protect, authController.refreshUser);
 authRouter.patch("/updateuser", authController.protect, authController.updateUserInformation);
 authRouter.get("/verifymail", authController.verifyMail);
 authRouter.route("/resendMail").post(authController.resendMail);
+authRouter.post("/resetpassword", authController.sendResetPasswordMail);
+authRouter.patch("/resetpassword", authController.resetPassword);
 export default authRouter;
