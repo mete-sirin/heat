@@ -1,10 +1,12 @@
 import ErrorApi from "../utils/ErrorApi.js";
+import crypto from "node:crypto";
 import * as userModel from "../models/userModel.js";
 import * as helperFunctions from "../utils/helperFunctions.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { config, cookieOptions } from "../utils/config.js";
-import { loginAuthSchema, signUpAuthSchema, updateUserSchema } from "../schemas/authSchema.js";
+import { emailSchema, loginAuthSchema, signUpAuthSchema, updateUserSchema } from "../schemas/authSchema.js";
+import sendVerificationMail from "../services/emailService.js";
 
 async function login(req, res, next) {
   const { email, password } = loginAuthSchema.parse(req.body);
@@ -12,6 +14,10 @@ async function login(req, res, next) {
 
   if (!user) {
     return next(new ErrorApi("Incorrect credentials", 401));
+  }
+  if (!user.is_verified) {
+    //res.redirect("send_verification_page", 302);
+    return next(new ErrorApi("Email not verified", 400));
   }
   //user.password=hash value from the server
   const passwordFlag = await bcrypt.compare(password, user.password_hash);
@@ -45,10 +51,27 @@ async function signup(req, res, next) {
   const { fullName, email, password, timeZone } = signUpAuthSchema.parse(req.body);
 
   const user = await userModel.createUser(fullName, email, password, timeZone);
-
+  const hasSent = await sendVerificationMail(email, user.rawMailToken);
+  if (!hasSent) {
+    res.status(201).json({
+      status: "success",
+      data: {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+      },
+      warning:
+        "Account created successfully, but the verification email couldn't be sent. Please click Resend verification link to try again.",
+    });
+    return;
+  }
   res.status(201).json({
     status: "success",
-    data: user,
+    data: {
+      id: user.id,
+      fullName: user.fullName,
+      email: user.email,
+    },
   });
 }
 
@@ -153,4 +176,37 @@ async function updateUserInformation(req, res, next) {
   });
 }
 
-export { login, signup, protect, logout, changePassword, refreshUser, updateUserInformation };
+async function verifyMail(req, res, next) {
+  const { token } = req.query;
+  if (!token) {
+    return next(new ErrorApi("No token was provided", 400));
+  }
+  const incomingHash = crypto.createHash("sha256").update(token).digest("hex");
+  const result = await userModel.verifyMail(incomingHash);
+
+  // res.redirect("frontendurl") create a success page
+  res.status(200).json({
+    status: "success",
+    message: result.alreadyVerified ? "Email is already verified" : "Email has been successfully verified",
+  });
+}
+
+async function resendMail(req, res, next) {
+  const rawEmail = req.body?.email || req.query?.email;
+  const email = emailSchema.parse(rawEmail);
+  const rawMailToken = await userModel.updateVerificationToken(email);
+
+  if (rawMailToken) {
+    const isSend = await sendVerificationMail(email, rawMailToken);
+    if (!isSend) {
+      return next(new ErrorApi("Failed to send the mail please try again", 500));
+    }
+  }
+
+  res.status(200).json({
+    status: "success",
+    message: "If an account with this email exists and is not yet verified, a verification email has been sent.",
+  });
+}
+
+export { login, signup, protect, logout, changePassword, refreshUser, updateUserInformation, verifyMail, resendMail };
