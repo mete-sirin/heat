@@ -20,4 +20,5 @@ export const config = {
   jwtExpires: process.env.JWT_EXPIRES_IN,
   cookieOptions,
   resendKey: process.env.RESEND_API_KEY,
+  frontendUrl: process.env.FRONTEND_URL,
 };

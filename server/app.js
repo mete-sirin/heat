@@ -8,8 +8,17 @@ import spendingsRouter from "./routes/spendingsRoutes.js";
 import subscriptionsRouter from "./routes/subscriptionsRoutes.js";
 import summaryRouter from "./routes/summaryRoutes.js";
 import healthRouter from "./routes/healthRoutes.js";
+import cors from "cors";
+import { config } from "./utils/config.js";
 const app = express();
 
+app.set("trust proxy", 1);
+app.use(
+  cors({
+    origin: config.frontendUrl,
+    credentials: true,
+  }),
+);
 app.use(helmet());
 app.use(express.json());
 app.use(cookieParser());
