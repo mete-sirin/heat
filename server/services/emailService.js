@@ -45,7 +45,7 @@ async function sendVerificationMail(targetMail, rawToken) {
 
   try {
     const { error } = await resend.emails.send({
-      from: "Mete Sirin <onboarding@metesirin.dev>",
+      from: config.emailFrom,
       to: targetMail,
       subject: "Verify your HEAT account",
       html,
@@ -77,7 +77,7 @@ async function sendResetMail(targetMail, resetToken) {
 
   try {
     const { error } = await resend.emails.send({
-      from: "Mete Sirin <onboarding@metesirin.dev>",
+      from: config.emailFrom,
       to: targetMail,
       subject: "Reset your HEAT password",
       html,

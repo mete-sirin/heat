@@ -86,6 +86,8 @@ async function deleteSubscription(subscriptionId, userId) {
 async function updateSubscription(subscriptionObj, subscriptionId, userId) {
   const { query, values } = sanitizeSubscriptionInput(subscriptionObj, subscriptionId, userId);
   const amountHasChanged = query.includes("amount");
+  const billingCycleHasChanged =
+    subscriptionObj.startDate !== undefined || subscriptionObj.length !== undefined;
   const updateBalanceQuery = "update users set balance = balance - ? where id = ? ";
   const selectUserBalanceQuery = "select balance from users where id = ?";
   const connection = await db.getConnection();
@@ -95,6 +97,27 @@ async function updateSubscription(subscriptionObj, subscriptionId, userId) {
     if (subscriptionUpdateResults.affectedRows === 0) {
       throw new ErrorApi("No subscription was found with the provided ID", 400);
     }
+
+    let updatedNextBillingDate;
+    if (billingCycleHasChanged) {
+      const [subRows] = await connection.execute(
+        "select start_date, length from subscriptions where id = ? and user_id = ?",
+        [subscriptionId, userId],
+      );
+      if (subRows.length > 0) {
+        const effectiveStart = String(subRows[0].start_date).slice(0, 10);
+        const effectiveLength = Number(subRows[0].length);
+        updatedNextBillingDate = DateTime.fromISO(effectiveStart)
+          .setZone("utc")
+          .plus({ days: effectiveLength })
+          .toISODate();
+        await connection.execute(
+          "update subscriptions set next_billing_date = ? where id = ? and user_id = ?",
+          [updatedNextBillingDate, subscriptionId, userId],
+        );
+      }
+    }
+
     if (amountHasChanged) {
       const updateBalanceValue = subscriptionObj.currentAmount - subscriptionObj.amount;
       await connection.execute(updateBalanceQuery, [updateBalanceValue, userId]);
@@ -109,6 +132,7 @@ async function updateSubscription(subscriptionObj, subscriptionId, userId) {
       subscription: {
         id: subscriptionId,
         ...cleanSubscriptionObj,
+        ...(updatedNextBillingDate ? { nextBillingDate: updatedNextBillingDate } : {}),
       },
       userBalance: userRows[0]?.balance,
     };

@@ -66,4 +66,28 @@ const resetPasswordSchema = z
     error: "Passwords don't match.",
     path: ["passwordConfirm"],
   });
-export { loginAuthSchema, signUpAuthSchema, updateUserSchema, emailSchema, resetPasswordSchema, tokenSchema };
+const changePasswordSchema = z
+  .object({
+    currentPassword: z
+      .string({ error: "Current password is required." })
+      .min(1, "Current password is required.")
+      .max(64, "Password cannot exceed 64 characters."),
+    newPassword: z
+      .string({ error: "New password is required." })
+      .min(8, "Password must be at least 8 characters long.")
+      .max(64, "Password cannot exceed 64 characters."),
+    newPasswordConfirm: z.string({ error: "Password confirmation is required." }),
+  })
+  .refine((data) => data.newPassword === data.newPasswordConfirm, {
+    error: "Passwords don't match.",
+    path: ["newPasswordConfirm"],
+  });
+
+const deleteAccountSchema = z.object({
+  password: z
+    .string({ error: "Password is required to confirm account deletion." })
+    .min(1, "Password is required to confirm account deletion.")
+    .max(64, "Password cannot exceed 64 characters."),
+});
+
+export { loginAuthSchema, signUpAuthSchema, updateUserSchema, emailSchema, resetPasswordSchema, tokenSchema, changePasswordSchema, deleteAccountSchema };
