@@ -1,86 +1,180 @@
-import { useNavigate } from "react-router";
-import { useState } from "react";
-import Footer from "../../../ui/Footer";
+import { Link, Navigate, useNavigate } from "react-router";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
+import { signUpSchema } from "../../../schemas/authSchemas";
+import { signup } from "../../../services/authService";
+import { useAuth } from "../../../hooks/useAuth";
+import AuthShell from "../../../ui/AuthShell";
+import FormField, { inputBaseClasses } from "../../../ui/FormField";
+import Button from "../../../ui/Button";
+
+function getDefaultTimeZone() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Istanbul";
+  } catch {
+    return "Europe/Istanbul";
+  }
+}
 
 function SignUp() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [currency, setCurrency] = useState("tr");
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
-  function handleSignup(e) {
-    e.preventDefault();
-    if (password.length < 5) return;
-    navigate("./success");
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(signUpSchema),
+    defaultValues: {
+      fullName: "",
+      email: "",
+      timeZone: getDefaultTimeZone(),
+      password: "",
+      passwordConfirm: "",
+    },
+  });
+
+  const signUpMutation = useMutation({
+    mutationFn: signup,
+    onSuccess: (res, variables) => {
+      navigate("/signup/success", {
+        state: {
+          email: variables.email,
+          fullName: variables.fullName,
+          warning: res?.warning || null,
+        },
+      });
+    },
+    onError: (err) => {
+      if (Array.isArray(err.errors)) {
+        err.errors.forEach((item) => {
+          if (item.field) {
+            setError(item.field, { message: item.message });
+          }
+        });
+      }
+    },
+  });
+
+  if (isAuthenticated) {
+    return <Navigate to="/home" replace />;
   }
+
+  const onSubmit = (data) => {
+    signUpMutation.mutate(data);
+  };
+
   return (
-    //// TODO: mask the bg image into the text (background-clip: text + transparent fill)
-    <div className="relative min-h-screen overflow-hidden">
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 scale-110 bg-[url('/loginBg.jpg')] bg-cover bg-center blur-sm"
-      />
-      <div className="relative min-h-screen flex flex-col bg-[url('/loginBg.jpg')] bg-contain bg-no-repeat bg-center">
-        <div className="flex-1 flex justify-center">
-          <section className="w-lg flex flex-col items-center gap-12 justify-center backdrop-blur-md bg-primary/35 rounded-md shadow-2xl border-border border m-20">
-            <h3 className="text-4xl uppercase font-bold font-display">HEAT</h3>
-            {/* //todo create a logo svg and handle the text */}
-            <p className="text-pretty text-center">
-              Handle your cash and never forget about subscriptions
-            </p>
-            <form
-              onSubmit={handleSignup}
-              className="flex flex-col gap-4 h-max w-2/3 border rounded-sm p-4 bg-amber-50"
-            >
-              <input
-                type="text"
-                placeholder="Name"
-                value={name}
-                className="p-2 border border-border"
-                required
-                onChange={(e) => setName(e.target.value)}
-              />
-              <input
-                type="email"
-                placeholder="ardaguler@gmail.com"
-                required={true}
-                className="p-2 border border-border"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="new-email"
-              />
-              <input
-                type="password"
-                placeholder="password"
-                required={true}
-                className="p-2 border border-border"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="new-password"
-              />
-              <select
-                name="currency"
-                value={currency}
-                className="p-2 border border-border"
-                onChange={(e) => setCurrency(e.target.value)}
-              >
-                <option value="tr">Lira</option>
-                <option value="dol">Dollar</option>
-                <option value="eu">Euro</option>
-              </select>
-              <button
-                className="cursor-pointer  text-white bg-black
-              hover:bg-black/80 p-2 rounded-sm"
-              >
-                Sign Up
-              </button>
-            </form>
-          </section>
+    <AuthShell
+      title="Create Account"
+      subtitle="Set up your HEAT account to track monthly spendings and subscriptions."
+    >
+      {signUpMutation.error && (
+        <div
+          role="alert"
+          className="mb-4 p-3 rounded-md bg-error-bg border border-error text-error text-xs font-medium"
+        >
+          {signUpMutation.error.message}
         </div>
-        <Footer></Footer>
-      </div>
-    </div>
+      )}
+
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-3.5">
+        <FormField
+          label="Full Name"
+          htmlFor="signup-fullname"
+          required
+          error={errors.fullName?.message}
+        >
+          <input
+            id="signup-fullname"
+            type="text"
+            autoComplete="name"
+            placeholder="Mete Şirin"
+            className={inputBaseClasses}
+            {...register("fullName")}
+          />
+        </FormField>
+
+        <FormField label="Email" htmlFor="signup-email" required error={errors.email?.message}>
+          <input
+            id="signup-email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            className={inputBaseClasses}
+            {...register("email")}
+          />
+        </FormField>
+
+        <FormField
+          label="Timezone (IANA)"
+          htmlFor="signup-timezone"
+          hint="Used to calculate monthly budget boundaries and billing dates."
+          required
+          error={errors.timeZone?.message}
+        >
+          <input
+            id="signup-timezone"
+            type="text"
+            placeholder="Europe/Istanbul"
+            className={inputBaseClasses}
+            {...register("timeZone")}
+          />
+        </FormField>
+
+        <FormField
+          label="Password"
+          htmlFor="signup-password"
+          hint="Between 8 and 64 characters."
+          required
+          error={errors.password?.message}
+        >
+          <input
+            id="signup-password"
+            type="password"
+            autoComplete="new-password"
+            placeholder="••••••••"
+            className={inputBaseClasses}
+            {...register("password")}
+          />
+        </FormField>
+
+        <FormField
+          label="Confirm Password"
+          htmlFor="signup-password-confirm"
+          required
+          error={errors.passwordConfirm?.message}
+        >
+          <input
+            id="signup-password-confirm"
+            type="password"
+            autoComplete="new-password"
+            placeholder="••••••••"
+            className={inputBaseClasses}
+            {...register("passwordConfirm")}
+          />
+        </FormField>
+
+        <Button
+          type="submit"
+          size="lg"
+          isLoading={signUpMutation.isPending}
+          className="w-full mt-2"
+        >
+          Create Account
+        </Button>
+
+        <div className="pt-3 border-t border-border text-center text-xs text-fg-secondary">
+          Already have an account?{" "}
+          <Link to="/login" className="text-primary font-semibold underline hover:opacity-90">
+            Go Back to Login
+          </Link>
+        </div>
+      </form>
+    </AuthShell>
   );
 }
 

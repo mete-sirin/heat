@@ -1,0 +1,17 @@
+{
+  "name": "HEAT — Personal Finance & Subscription Tracker",
+  "short_name": "HEAT",
+  "description": "Track daily spendings, recurring subscriptions, and monthly budget utilization in one place.",
+  "start_url": "/home",
+  "display": "standalone",
+  "background_color": "#00001c",
+  "theme_color": "#00001c",
+  "icons": [
+    {
+      "src": "/fav_icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
