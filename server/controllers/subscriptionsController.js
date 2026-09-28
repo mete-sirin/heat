@@ -51,7 +51,6 @@ async function deleteSubscription(req, res, next) {
 async function updateSubscription(req, res, next) {
   const subscriptionId = checkSubscriptionIDSchema.parse(req.params.id);
 
-  //assume the info is in the right shape
   const subscriptionObj = updateSubscriptionSchema.parse(req.body);
   const { subscription, userBalance } =
     await subscriptionsModel.updateSubscription(

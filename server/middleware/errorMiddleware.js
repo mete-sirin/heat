@@ -1,4 +1,5 @@
 import { z } from "zod";
+import ErrorApi from "../utils/ErrorApi.js";
 
 function handleErrors(err, req, res, next) {
   if (res.headersSent) {
@@ -8,7 +9,7 @@ function handleErrors(err, req, res, next) {
   if (err instanceof z.ZodError || err.name === "ZodError") {
     const errors = err.issues.map((el) => {
       return {
-        field: el.path.join(".") || "body", // in case it doesnt have a path
+        field: el.path.join(".") || "body",
         message: el.message,
       };
     });
@@ -23,15 +24,16 @@ function handleErrors(err, req, res, next) {
   if (err.code === "ER_DUP_ENTRY") {
     return res.status(409).json({
       status: "error",
-      message: "The provided value already exists in the database.",
+      message: "An account or record with this value already exists.",
     });
   }
 
   console.error(err);
-  const statusCode = err.statusCode || 500;
+  const isOperational = err instanceof ErrorApi;
+  const statusCode = isOperational && err.statusCode ? err.statusCode : 500;
   res.status(statusCode).json({
     status: "error",
-    message: err.message || "Internal Server Error", // change it to generic message once deployed
+    message: isOperational ? err.message : "Internal Server Error",
   });
 }
 

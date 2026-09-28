@@ -20,5 +20,6 @@ export const config = {
   jwtExpires: process.env.JWT_EXPIRES_IN,
   cookieOptions,
   resendKey: process.env.RESEND_API_KEY,
+  emailFrom: process.env.EMAIL_FROM || "Mete Sirin <onboarding@metesirin.dev>",
   frontendUrl: process.env.FRONTEND_URL,
 };

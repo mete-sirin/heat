@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { config, cookieOptions } from "../utils/config.js";
 import {
+  changePasswordSchema,
   emailSchema,
   loginAuthSchema,
   resetPasswordSchema,
@@ -15,20 +16,20 @@ import {
 } from "../schemas/authSchema.js";
 import { sendVerificationMail, sendResetMail } from "../services/emailService.js";
 
+const DUMMY_BCRYPT_HASH = "$2b$10$CwTycUXWue0Thq9StjUM0uJ8D0R5p6K8t2v3W1x4Y5z6A7B8C9D0E";
+
 async function login(req, res, next) {
   const { email, password } = loginAuthSchema.parse(req.body);
   const user = await userModel.findUser(email);
 
-  if (!user) {
+  const passwordHashToCompare = user ? user.password_hash : DUMMY_BCRYPT_HASH;
+  const passwordFlag = await bcrypt.compare(password, passwordHashToCompare);
+
+  if (!user || !passwordFlag) {
     return next(new ErrorApi("Incorrect credentials.", 401));
   }
   if (!user.is_verified) {
     return next(new ErrorApi("Email is not verified.", 400));
-  }
-  //user.password=hash value from the server
-  const passwordFlag = await bcrypt.compare(password, user.password_hash);
-  if (!passwordFlag) {
-    return next(new ErrorApi("Incorrect credentials.", 401));
   }
 
   const payload = {
@@ -126,13 +127,7 @@ async function logout(req, res) {
 }
 
 async function changePassword(req, res, next) {
-  const { currentPassword, newPassword, newPasswordConfirm } = req.body;
-  if (!currentPassword || !newPassword || !newPasswordConfirm) {
-    return next(new ErrorApi("Missing required fields.", 400));
-  }
-  if (newPassword !== newPasswordConfirm) {
-    return next(new ErrorApi("Passwords don't match.", 400));
-  }
+  const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
 
   await userModel.checkandUpdatePassword(currentPassword, newPassword, req.user);
 

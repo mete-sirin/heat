@@ -28,7 +28,6 @@ app.use("/api/v1/spendings", protect, spendingsRouter);
 app.use("/api/v1/subscriptions", protect, subscriptionsRouter);
 app.use("/api/v1/summary", protect, summaryRouter);
 app.use("/api/v1/health", healthRouter);
-////// error handling keep it last
 app.use(handleErrors);
 
 export default app;

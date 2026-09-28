@@ -6,7 +6,7 @@ const authRouter = express.Router();
 authRouter.post("/login", authLimiter, authController.login);
 authRouter.post("/signup", authLimiter, authController.signup);
 authRouter.post("/signout", authController.logout);
-authRouter.post("/changepassword", authController.protect, authController.changePassword);
+authRouter.post("/changepassword", authLimiter, authController.protect, authController.changePassword);
 authRouter.get("/me", authController.protect, authController.refreshUser);
 authRouter.patch("/updateuser", authController.protect, authController.updateUserInformation);
 authRouter.get("/verifymail", authLimiter, authController.verifyMail);
