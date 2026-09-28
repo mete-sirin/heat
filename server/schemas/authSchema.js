@@ -83,4 +83,11 @@ const changePasswordSchema = z
     path: ["newPasswordConfirm"],
   });
 
-export { loginAuthSchema, signUpAuthSchema, updateUserSchema, emailSchema, resetPasswordSchema, tokenSchema, changePasswordSchema };
+const deleteAccountSchema = z.object({
+  password: z
+    .string({ error: "Password is required to confirm account deletion." })
+    .min(1, "Password is required to confirm account deletion.")
+    .max(64, "Password cannot exceed 64 characters."),
+});
+
+export { loginAuthSchema, signUpAuthSchema, updateUserSchema, emailSchema, resetPasswordSchema, tokenSchema, changePasswordSchema, deleteAccountSchema };

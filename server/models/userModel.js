@@ -129,6 +129,31 @@ async function resetPassword(password, incomingHash) {
   return true;
 }
 
+async function deleteUser(password, user) {
+  const isPasswordCorrect = await bcrypt.compare(password, user.password_hash);
+  if (!isPasswordCorrect) {
+    throw new ErrorApi("Password is incorrect.", 400);
+  }
+  const connection = await db.getConnection();
+  try {
+    await connection.beginTransaction();
+    await connection.execute("delete from spendings where user_id = ?", [user.id]);
+    await connection.execute("delete from subscriptions where user_id = ?", [user.id]);
+    const [result] = await connection.execute("delete from users where id = ?", [user.id]);
+    if (result.affectedRows === 0) {
+      throw new ErrorApi("User account could not be found.", 404);
+    }
+    await connection.commit();
+    return true;
+  } catch (err) {
+    await connection.rollback();
+    if (err instanceof ErrorApi) throw err;
+    throw new ErrorApi("Failed to delete account.", 500);
+  } finally {
+    connection.release();
+  }
+}
+
 export {
   findUser,
   createUser,
@@ -139,4 +164,5 @@ export {
   updateVerificationToken,
   resetPasswordToken,
   resetPassword,
+  deleteUser,
 };

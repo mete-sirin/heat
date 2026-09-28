@@ -7,6 +7,7 @@ import jwt from "jsonwebtoken";
 import { config, cookieOptions } from "../utils/config.js";
 import {
   changePasswordSchema,
+  deleteAccountSchema,
   emailSchema,
   loginAuthSchema,
   resetPasswordSchema,
@@ -240,6 +241,15 @@ async function resetPassword(req, res, next) {
     message: "Account password has been succesfully changed.",
   });
 }
+async function deleteAccount(req, res) {
+  const { password } = deleteAccountSchema.parse(req.body);
+  await userModel.deleteUser(password, req.user);
+  res.status(200).clearCookie("access_token", cookieOptions).json({
+    status: "success",
+    message: "Account and all associated data have been permanently deleted.",
+  });
+}
+
 export {
   login,
   signup,
@@ -252,4 +262,5 @@ export {
   resendMail,
   sendResetPasswordMail,
   resetPassword,
+  deleteAccount,
 };

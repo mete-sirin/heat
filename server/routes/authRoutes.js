@@ -8,6 +8,7 @@ authRouter.post("/signup", authLimiter, authController.signup);
 authRouter.post("/signout", authController.logout);
 authRouter.post("/changepassword", authLimiter, authController.protect, authController.changePassword);
 authRouter.get("/me", authController.protect, authController.refreshUser);
+authRouter.delete("/me", authLimiter, authController.protect, authController.deleteAccount);
 authRouter.patch("/updateuser", authController.protect, authController.updateUserInformation);
 authRouter.get("/verifymail", authLimiter, authController.verifyMail);
 authRouter.post("/resendmail", mailLimiter, authController.resendMail);
