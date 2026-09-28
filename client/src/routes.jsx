@@ -1,11 +1,9 @@
+import { lazy } from "react";
 import { createBrowserRouter } from "react-router";
 
 import LandingPage from "./pages/LandingPage";
-import HomePage from "./pages/HomePage";
-import Layout from "./ui/Layout";
 import LoginPage from "./pages/LoginPage";
-import SignUpPage from "./pages/SignUpPage";
-import SignUpSuccess from "./features/Auth/SignUp/SignUpSuccess";
+import Layout from "./ui/Layout";
 
 const router = createBrowserRouter([
   {
@@ -16,15 +14,25 @@ const router = createBrowserRouter([
     path: "login",
     Component: LoginPage,
   },
-
   {
     path: "signup",
-    Component: SignUpPage,
+    Component: lazy(() => import("./pages/SignUpPage")),
   },
   {
     path: "signup/success",
-
-    Component: SignUpSuccess,
+    Component: lazy(() => import("./pages/SignUpSuccessPage")),
+  },
+  {
+    path: "forgot-password",
+    Component: lazy(() => import("./pages/ForgotPasswordPage")),
+  },
+  {
+    path: "reset-password",
+    Component: lazy(() => import("./pages/ResetPasswordPage")),
+  },
+  {
+    path: "verify-email",
+    Component: lazy(() => import("./pages/VerifyEmailPage")),
   },
   {
     path: "/",
@@ -32,9 +40,29 @@ const router = createBrowserRouter([
     children: [
       {
         path: "home",
-        Component: HomePage,
+        Component: lazy(() => import("./pages/HomePage")),
+      },
+      {
+        path: "spendings",
+        Component: lazy(() => import("./pages/SpendingsPage")),
+      },
+      {
+        path: "subscriptions",
+        Component: lazy(() => import("./pages/SubscriptionsPage")),
+      },
+      {
+        path: "breakdown",
+        Component: lazy(() => import("./pages/BreakdownPage")),
+      },
+      {
+        path: "settings",
+        Component: lazy(() => import("./pages/SettingsPage")),
       },
     ],
+  },
+  {
+    path: "*",
+    Component: lazy(() => import("./pages/NotFoundPage")),
   },
 ]);
 

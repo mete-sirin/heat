@@ -1,6 +1,8 @@
 function Footer() {
   return (
-    <footer className="p-6 text-gray-400 sticky bottom-0 text-center">Mete Şirin ©2026</footer>
+    <footer className="w-full py-4 px-4 text-xs text-fg-muted border-t border-border text-center select-none">
+      © 2026 Mete Şirin · HEAT. All rights reserved.
+    </footer>
   );
 }
 

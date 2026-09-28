@@ -1,123 +1,117 @@
 @import "tailwindcss";
 
-/* Dark mode is driven by a `dark` class on <html>, set by ThemeContext. */
+/* Dark mode is the primary Figma theme, with light mode available via ThemeContext. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ============================================================================
    TYPE
-
-   Space Grotesk for the wordmark, headings and money — a grotesque with
-   near-monospaced figures, so columns of amounts line up without fighting it.
-   Inter for everything else.
-
-     font-display   headings, the "heat" wordmark, balances
-     font-sans      body, labels, inputs (the default — no class needed)
-
-   Amounts in a table or a running total also want `tabular-nums`, or digits
-   change width as the number changes and the column jitters.
+   Native system font stack only — zero network font requests, renders San
+   Francisco on iOS and native UI sans on desktop.
    ========================================================================= */
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: "Space Grotesk", var(--font-sans);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 /* ============================================================================
-   PALETTE
-
-   Every color in the app, and nothing else. Variable names match the design
-   spec one-for-one; the utility class each one generates is listed in the
-   `@theme inline` block at the bottom.
+   COLOR PALETTE & THEME TOKENS
    ========================================================================= */
 :root {
   color-scheme: light;
 
-  --bg-app: #f8f9fa;
+  --ink-black: #00001c;
+  --ink-black-alt: #060a1e;
+  --shadow-grey: #151223;
+  --dusty-taupe: #bc907b;
+  --powder-blue: #a4b1cd;
+  --white-accent: #cdcdcd;
+  --footer-grey-text: #474747;
+
+  --bg-app: #edf0f6;
   --bg-surface: #ffffff;
-  --border: #2125;
+  --bg-surface-alt: #e2e7f1;
+  --border: #c2cbe0;
 
-  --text-primary: #212529;
-  --text-secondary: #495057;
-  --text-muted: #868e96;
+  --text-primary: #00001c;
+  --text-secondary: #151223;
+  --text-muted: #474747;
 
-  /* Yellow is too light for white label text (1.9:1) — put --text-primary
-     on any filled brand button. */
-  --primary: #fab005;
-  --primary-hover: #f59f00;
-  --accent: #e67700;
+  --primary: #00001c;
+  --primary-fg: #ffffff;
+  --primary-hover: #151223;
+  --accent: #bc907b;
 
-  --success: #40c057;
+  --success: #2b8a3e;
   --success-bg: #ebfbee;
-  --error: #fa5252;
+  --error: #c92a2a;
   --error-bg: #fff5f5;
-  --warning: #fd7e14;
+  --warning: #d9480f;
   --warning-bg: #fff4e6;
-  --info: #12b886;
-  --info-bg: #e6fcf5;
+  --info: #1864ab;
+  --info-bg: #e7f5ff;
 }
 
 .dark {
   color-scheme: dark;
 
-  --bg-app: #18191b;
-  --bg-surface: #212326;
-  --border: #343a40;
+  --bg-app: #00001c;
+  --bg-surface: #060a1e;
+  --bg-surface-alt: #151223;
+  --border: #252238;
 
-  --text-primary: #f8f9fa;
-  --text-secondary: #ced4da;
-  --text-muted: #6c757d;
+  --text-primary: #cdcdcd;
+  --text-secondary: #a4b1cd;
+  --text-muted: #6e7385;
 
-  --primary: #fcc419;
-  --primary-hover: #fab005;
-  --accent: #ffe066;
+  --primary: #a4b1cd;
+  --primary-fg: #00001c;
+  --primary-hover: #b8c3da;
+  --accent: #bc907b;
 
   --success: #51cf66;
-  --success-bg: #1b2e21;
+  --success-bg: #0f2419;
   --error: #ff6b6b;
-  --error-bg: #341b1d;
+  --error-bg: #29121a;
   --warning: #ff922b;
-  --warning-bg: #352315;
-  --info: #20c997;
-  --info-bg: #122b27;
+  --warning-bg: #291c12;
+  --info: #a4b1cd;
+  --info-bg: #151223;
 }
 
-/* ============================================================================
-   UTILITIES
-
-   `@theme inline` keeps the utilities pointing at the raw var, so they follow
-   the light/dark switch instead of baking in whichever value loaded first.
-
-   A name here owns EVERY property, not one: `--color-primary` generates
-   text-primary, bg-primary, border-primary, ring-primary… all the same color.
-   So the spec's two `primary`s can't both keep the name. The yellow wins it,
-   since it's the one you actually write classes for; the body text color is
-   already the default on <body> and only needs a class to override, so it goes
-   out as `fg`.
-   ========================================================================= */
 @theme inline {
-  --color-app: var(--bg-app); /* bg-app                    */
-  --color-surface: var(--bg-surface); /* bg-surface                */
-  --color-border: var(--border); /* border-border             */
+  --color-ink-black: var(--ink-black);
+  --color-ink-black-alt: var(--ink-black-alt);
+  --color-shadow-grey: var(--shadow-grey);
+  --color-dusty-taupe: var(--dusty-taupe);
+  --color-powder-blue: var(--powder-blue);
+  --color-white-accent: var(--white-accent);
+  --color-footer-grey-text: var(--footer-grey-text);
 
-  --color-fg: var(--text-primary); /* text-fg                   */
-  --color-fg-secondary: var(--text-secondary); /* text-fg-secondary         */
-  --color-fg-muted: var(--text-muted); /* text-fg-muted             */
+  --color-app: var(--bg-app);
+  --color-surface: var(--bg-surface);
+  --color-surface-alt: var(--bg-surface-alt);
+  --color-border: var(--border);
 
-  --color-primary: var(--primary); /* bg-primary, text-primary  */
-  --color-primary-hover: var(--primary-hover); /* hover:bg-primary-hover    */
-  --color-accent: var(--accent); /* text-accent               */
+  --color-fg: var(--text-primary);
+  --color-fg-secondary: var(--text-secondary);
+  --color-fg-muted: var(--text-muted);
 
-  --color-success: var(--success); /* text-success              */
-  --color-success-bg: var(--success-bg); /* bg-success-bg             */
-  --color-error: var(--error); /* text-error                */
-  --color-error-bg: var(--error-bg); /* bg-error-bg               */
-  --color-warning: var(--warning); /* text-warning              */
-  --color-warning-bg: var(--warning-bg); /* bg-warning-bg             */
-  --color-info: var(--info); /* text-info                 */
-  --color-info-bg: var(--info-bg); /* bg-info-bg                */
+  --color-primary: var(--primary);
+  --color-primary-fg: var(--primary-fg);
+  --color-primary-hover: var(--primary-hover);
+  --color-accent: var(--accent);
+
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-error: var(--error);
+  --color-error-bg: var(--error-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
 }
 
 @layer base {
-  /* Tailwind v4 defaults borders to currentColor; point them at the token. */
   *,
   ::after,
   ::before {
@@ -127,5 +121,68 @@
   body {
     background-color: var(--bg-app);
     color: var(--text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  input:user-invalid,
+  select:user-invalid {
+    border-color: var(--error);
+  }
+}
+
+/* ============================================================================
+   THREE-TIER NUMBER HIERARCHY (Tabular numerals enforced everywhere)
+   - .num-hero:       Single current-month-spent figure only
+   - .num-supporting: Remaining, budget total, recurring total, list-item amounts
+   - .num-meta:       Dates, payment method, entry counts
+   ========================================================================= */
+.num-hero {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.num-supporting {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.num-meta {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+/* Motion & prefers-reduced-motion rules for vaul drawer & interactive states */
+[data-vaul-drawer] {
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+[data-vaul-drawer][data-state="closed"] {
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+[data-vaul-overlay] {
+  transition: opacity 200ms ease-out !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after,
+  [data-vaul-drawer],
+  [data-vaul-overlay] {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 40ms !important;
+    scroll-behavior: auto !important;
   }
 }

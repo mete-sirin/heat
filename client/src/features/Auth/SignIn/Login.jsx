@@ -1,61 +1,159 @@
-import { useNavigate } from "react-router";
 import { useState } from "react";
-import Footer from "../../../ui/Footer";
+import { Link, Navigate, useNavigate } from "react-router";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { loginSchema } from "../../../schemas/authSchemas";
+import { login, resendVerificationEmail } from "../../../services/authService";
+import { useAuth } from "../../../hooks/useAuth";
+import AuthShell from "../../../ui/AuthShell";
+import FormField, { inputBaseClasses } from "../../../ui/FormField";
+import Button from "../../../ui/Button";
 
 function Login() {
-  const [email, setEmail] = useState();
-  const [password, setPassword] = useState();
-  function handleLogin(e) {
-    e.preventDefault();
-    console.log(email, password);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuth();
+  const [resendMessage, setResendMessage] = useState("");
+
+  const {
+    register,
+    handleSubmit,
+    getValues,
+    setError,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  const loginMutation = useMutation({
+    mutationFn: login,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+      navigate("/home", { replace: true });
+    },
+    onError: (err) => {
+      if (Array.isArray(err.errors)) {
+        err.errors.forEach((item) => {
+          if (item.field) {
+            setError(item.field, { message: item.message });
+          }
+        });
+      }
+    },
+  });
+
+  const resendMutation = useMutation({
+    mutationFn: resendVerificationEmail,
+    onSuccess: (res) => {
+      setResendMessage(res?.message || "Verification email has been sent. Check your inbox.");
+    },
+  });
+
+  if (isAuthenticated) {
+    return <Navigate to="/home" replace />;
   }
+
+  const onSubmit = (data) => {
+    setResendMessage("");
+    loginMutation.mutate(data);
+  };
+
+  const isUnverifiedError = loginMutation.error?.message?.toLowerCase().includes("not verified");
+
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 scale-110 bg-[url('/loginBg.jpg')] bg-cover bg-center blur-sm"
-      />
-      <div className="relative min-h-screen flex flex-col bg-[url('/loginBg.jpg')] bg-contain bg-no-repeat bg-center">
-        <div className="flex-1 flex justify-center">
-          <section className="w-lg flex flex-col items-center gap-12 justify-center backdrop-blur-md bg-primary/35 rounded-md shadow-2xl border-border border m-20">
-            <h3 className="text-4xl uppercase font-bold font-display">HEAT</h3>
-            {/* //todo create a logo svg and handle the text */}
-            <p className="text-pretty text-center">
-              Handle your cash and never forget about subscriptions
-            </p>
-            <form
-              action="submit"
-              className="flex flex-col gap-4 h-max w-2/3 border rounded-sm p-4 bg-primary-hover"
-            >
-              <input
-                type="email"
-                placeholder="ardaguler@gmail.com"
-                required={true}
-                className="p-2 border border-border"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <input
-                type="password"
-                placeholder="password"
-                required={true}
-                className="p-2 border border-border"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <button
-                onClick={handleLogin}
-                className="cursor-pointer  text-white bg-black
-              hover:bg-black/80 p-2 rounded-sm"
+    <AuthShell title="Log In" subtitle="Enter your credentials to access your HEAT ledger.">
+      {loginMutation.error && (
+        <div
+          role="alert"
+          className="mb-4 p-3 rounded-md bg-error-bg border border-error text-error text-xs flex flex-col gap-2"
+        >
+          <span className="font-medium">{loginMutation.error.message}</span>
+          {isUnverifiedError && (
+            <div className="flex items-center justify-between gap-2 pt-1 border-t border-error/30">
+              <span className="text-fg-secondary">Need a new link?</span>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                isLoading={resendMutation.isPending}
+                onClick={() => {
+                  const emailVal = getValues("email");
+                  if (emailVal) resendMutation.mutate(emailVal);
+                }}
               >
-                Login
-              </button>
-            </form>
-          </section>
+                Resend Verification
+              </Button>
+            </div>
+          )}
         </div>
-        <Footer></Footer>
-      </div>
-    </div>
+      )}
+
+      {resendMessage && (
+        <div
+          role="status"
+          className="mb-4 p-3 rounded-md bg-success-bg border border-success text-success text-xs font-medium"
+        >
+          {resendMessage}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+        <FormField label="Email" htmlFor="login-email" required error={errors.email?.message}>
+          <input
+            id="login-email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            className={inputBaseClasses}
+            {...register("email")}
+          />
+        </FormField>
+
+        <FormField
+          label="Password"
+          htmlFor="login-password"
+          required
+          error={errors.password?.message}
+        >
+          <input
+            id="login-password"
+            type="password"
+            autoComplete="current-password"
+            placeholder="••••••••"
+            className={inputBaseClasses}
+            {...register("password")}
+          />
+        </FormField>
+
+        <div className="flex items-center justify-between text-xs pt-1">
+          <Link
+            to="/forgot-password"
+            className="text-fg-secondary hover:text-fg underline font-medium"
+          >
+            Forgot Password?
+          </Link>
+          <Link to="/verify-email" className="text-fg-muted hover:text-fg-secondary underline">
+            Have a verification token?
+          </Link>
+        </div>
+
+        <Button type="submit" size="lg" isLoading={loginMutation.isPending} className="w-full mt-1">
+          Enter
+        </Button>
+
+        <div className="pt-3 border-t border-border text-center text-xs text-fg-secondary">
+          Don&apos;t have an account?{" "}
+          <Link to="/signup" className="text-primary font-semibold underline hover:opacity-90">
+            Sign Up
+          </Link>
+        </div>
+      </form>
+    </AuthShell>
   );
 }
 
