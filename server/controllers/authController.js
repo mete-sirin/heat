@@ -23,7 +23,6 @@ async function login(req, res, next) {
     return next(new ErrorApi("Incorrect credentials.", 401));
   }
   if (!user.is_verified) {
-    //res.redirect("send_verification_page", 302);
     return next(new ErrorApi("Email is not verified.", 400));
   }
   //user.password=hash value from the server
@@ -100,7 +99,9 @@ async function protect(req, res, next) {
   if (user.password_changed_at) {
     const passwordChangedAtSeconds = helperFunctions.formatToUnixSeconds(user.password_changed_at);
     if (passwordChangedAtSeconds > decoded.iat) {
-      return next(new ErrorApi("User changed their password and this token is no longer valid.", 401));
+      return next(
+        new ErrorApi("User changed their password and this token is no longer valid.", 401),
+      );
     }
   }
   req.user = user;
@@ -108,12 +109,15 @@ async function protect(req, res, next) {
 }
 
 async function logout(req, res) {
-  const decoded = helperFunctions.decodeJWTFromReq(req);
-  const user = await userModel.findUser(decoded.email.trim());
-  if (user) {
-    await userModel.logUserOut(user.id);
+  try {
+    const decoded = helperFunctions.decodeJWTFromReq(req);
+    const user = await userModel.findUser(decoded.email.trim());
+    if (user) {
+      await userModel.logUserOut(user.id);
+    }
+  } catch {
+    // If token is missing, invalid, or already expired, proceed to clear cookie
   }
-  // If token is missing, invalid, or already expired, proceed to clear cookie
 
   res.status(200).clearCookie("access_token", cookieOptions).json({
     status: "success",
@@ -188,10 +192,11 @@ async function verifyMail(req, res, next) {
   const incomingHash = crypto.createHash("sha256").update(token).digest("hex");
   const result = await userModel.verifyMail(incomingHash);
 
-  // res.redirect("frontendurl") create a success page
   res.status(200).json({
     status: "success",
-    message: result.alreadyVerified ? "Email is already verified." : "Email has been successfully verified.",
+    message: result.alreadyVerified
+      ? "Email is already verified."
+      : "Email has been successfully verified.",
   });
 }
 
@@ -209,7 +214,8 @@ async function resendMail(req, res, next) {
 
   res.status(200).json({
     status: "success",
-    message: "If an account with this email exists and is not yet verified, a verification email has been sent.",
+    message:
+      "If an account with this email exists and is not yet verified, a verification email has been sent.",
   });
 }
 
@@ -234,7 +240,7 @@ async function resetPassword(req, res, next) {
   const incomingHash = crypto.createHash("sha256").update(token).digest("hex");
   const result = await userModel.resetPassword(password, incomingHash);
   if (!result) return next(new ErrorApi("A problem occurred while updating the password.", 500));
-  res.status(200).json({
+  res.status(200).clearCookie("access_token", cookieOptions).json({
     status: "success",
     message: "Account password has been succesfully changed.",
   });

@@ -28,7 +28,7 @@ async function createUser(fullName, email, password, timeZone) {
 }
 
 async function logUserOut(id) {
-  await db.execute("update users set logged_out_at = now() where id = ?", [id]);
+  await db.execute("update users set logged_out_at = UTC_TIMESTAMP() where id = ?", [id]);
 }
 
 async function checkandUpdatePassword(currentPassword, newPassword, user) {
@@ -40,7 +40,7 @@ async function checkandUpdatePassword(currentPassword, newPassword, user) {
   const saltRounds = 10;
   const passwordHash = await bcrypt.hash(newPassword, saltRounds);
 
-  const query = "update users set password_hash = ?, password_changed_at = NOW() where id = ?";
+  const query = "update users set password_hash = ?, password_changed_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 SECOND) where id = ?";
   const values = [passwordHash, user.id];
 
   await db.execute(query, values);
@@ -122,7 +122,7 @@ async function resetPassword(password, incomingHash) {
   const saltRounds = 10;
   const passwordHash = await bcrypt.hash(password, saltRounds);
   const query =
-    "update users set password_hash = ?, password_changed_at = NOW(), reset_hash = NULL, reset_expires_at = NULL where id = ?";
+    "update users set password_hash = ?, password_changed_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 SECOND), reset_hash = NULL, reset_expires_at = NULL where id = ?";
   const values = [passwordHash, user.id];
   const [results] = await db.execute(query, values);
   if (results.affectedRows === 0) throw new ErrorApi("A problem occurred while updating the password.", 500);

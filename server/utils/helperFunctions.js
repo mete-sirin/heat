@@ -50,6 +50,7 @@ function sanitizeSubscriptionInput(object, subscriptionId, userId) {
     subscriptionCategory: "subscription_category",
     amount: "amount",
     length: "length",
+    startDate: "start_date",
   };
   const fields = new Map();
 
@@ -66,7 +67,7 @@ function sanitizeSubscriptionInput(object, subscriptionId, userId) {
   return { query, values };
 }
 
-//trying jsdoc for the first time
+//JSDOC
 /**
  * Builds SQL queries for filtering, sorting, and paginating records.
  *
@@ -88,11 +89,17 @@ function buildSelectQuery({ table, userId, queryObj, filterRules, userTimezone }
   const zone = userTimezone || "UTC";
 
   if (queryObj.start_date) {
-    queryObj.start_date = DateTime.fromISO(queryObj.start_date, { zone }).startOf("day").toUTC().toFormat("yyyy-MM-dd HH:mm:ss");
+    queryObj.start_date = DateTime.fromISO(queryObj.start_date, { zone })
+      .startOf("day")
+      .toUTC()
+      .toFormat("yyyy-MM-dd HH:mm:ss");
   }
 
   if (queryObj.end_date) {
-    queryObj.end_date = DateTime.fromISO(queryObj.end_date, { zone }).endOf("day").toUTC().toFormat("yyyy-MM-dd HH:mm:ss");
+    queryObj.end_date = DateTime.fromISO(queryObj.end_date, { zone })
+      .endOf("day")
+      .toUTC()
+      .toFormat("yyyy-MM-dd HH:mm:ss");
   }
 
   for (const [key, value] of Object.entries(queryObj)) {
