@@ -3,10 +3,7 @@ import z from "zod";
 const paymentMethodEnum = [`cash`, `creditCard`, `qr`, `debitCard`];
 
 const createSpendingSchema = z.object({
-  spendingName: z
-    .string()
-    .trim()
-    .min(1, "Spending name must be at least 1 character long"),
+  spendingName: z.string().trim().min(1, "Spending name must be at least 1 character long"),
   spendingCategory: z
     .string()
     .trim()
@@ -29,10 +26,7 @@ const updateSpendingSchema = z
       .min(1, "Spending category must be at least 1 character long")
       .optional(),
     amount: z.number().positive("Amount must be a positive number").optional(),
-    currentAmount: z
-      .number()
-      .positive("Current amount must be a positive number")
-      .optional(),
+    currentAmount: z.number().positive("Current amount must be a positive number").optional(),
     paymentMethod: z.enum(paymentMethodEnum).optional(),
   })
   .refine(
@@ -42,8 +36,7 @@ const updateSpendingSchema = z
       return hasAmount === hasCurrentAmount;
     },
     {
-      message:
-        "Both 'amount' and 'currentAmount' must be provided at the same time",
+      message: "Both 'amount' and 'currentAmount' must be provided at the same time",
       path: ["currentAmount"],
     },
   )
@@ -70,9 +63,7 @@ const getSpendingsQuerySchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Date format must be YYYY-MM-DD")
     .optional(),
-  sort: z
-    .enum(["amount", "created_at", "spending_category"])
-    .default("created_at"),
+  sort: z.enum(["amount", "created_at", "spending_category"]).default("created_at"),
   sort_order: z.enum(["asc", "desc"]).default("desc"),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),

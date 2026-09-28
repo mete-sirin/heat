@@ -126,7 +126,7 @@ async function uploadSubscription(subscriptionObj, userId, userTimeZone) {
   const insertSubscriptionQuery =
     "insert into subscriptions (subscription_name, subscription_category, amount, start_date, length, user_id, next_billing_date) values (?, ?, ?, ?, ?, ?, ?)";
 
-  const category = subscriptionCategory ?? "generic";
+  const category = subscriptionCategory ?? "Generic";
   const nextBillingDateValue = DateTime.fromISO(startDate).setZone("utc").plus({ days: length }).toISODate();
   const insertSubscriptionValues = [subscriptionName, category, amount, startDate, length, userId, nextBillingDateValue];
 

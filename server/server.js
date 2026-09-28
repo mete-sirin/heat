@@ -1,3 +1,4 @@
+process.env.TZ = "UTC";
 import mysql from "mysql2/promise";
 import { config } from "./utils/config.js";
 import express from "express";
@@ -14,6 +15,10 @@ const db = mysql.createPool({
   database: config.db.database,
   timezone: "Z",
   dateStrings: ["DATE"],
+});
+
+db.on("connection", (connection) => {
+  connection.query("SET time_zone = '+00:00'");
 });
 
 const server = app.listen(config.port, () =>

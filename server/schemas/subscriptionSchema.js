@@ -15,6 +15,7 @@ const updateSubscriptionSchema = z
     currentAmount: z.number().positive("Amount must be positive"),
     length: z.number().int().positive("Length must be a positive integer value"),
     subscriptionCategory: z.string().trim().optional(),
+    startDate: z.iso.date(),
   })
   .partial()
   .refine(
