@@ -92,7 +92,7 @@ function SignUp() {
             id="signup-fullname"
             type="text"
             autoComplete="name"
-            placeholder="Mete Şirin"
+            placeholder="Your Name"
             className={inputBaseClasses}
             {...register("fullName")}
           />

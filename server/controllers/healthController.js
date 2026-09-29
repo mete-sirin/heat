@@ -12,6 +12,12 @@ async function checkDb(req, res) {
     res.status(200).json({
       status: "ok",
     });
-  } catch {}
+  } catch (err) {
+    console.error("Readiness check DB error:", err);
+    res.status(500).json({
+      status: "error",
+      message: err.message,
+    });
+  }
 }
 export { checkHealth, checkDb };

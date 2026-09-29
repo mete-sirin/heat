@@ -25,7 +25,7 @@ export async function apiRequest(path, { method = "GET", body, params, headers =
     }
   }
 
-  const config = {
+  const requestOptions = {
     method,
     credentials: "include",
     headers: {
@@ -35,7 +35,7 @@ export async function apiRequest(path, { method = "GET", body, params, headers =
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   };
 
-  const response = await fetch(url, config);
+  const response = await fetch(url, requestOptions);
   let data;
 
   try {
