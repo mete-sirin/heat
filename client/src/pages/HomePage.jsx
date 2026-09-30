@@ -121,12 +121,7 @@ function HomePage() {
             </p>
           </div>
         ) : (
-          <p className="pt-2.5 border-t border-border num-meta">
-            No budget set —{" "}
-            <Link to="/settings" className="text-fg-secondary underline font-medium">
-              tap Set budget
-            </Link>
-          </p>
+          <p className="pt-2.5 border-t border-border num-meta">No budget set</p>
         )}
 
         {hasSubscriptions && (

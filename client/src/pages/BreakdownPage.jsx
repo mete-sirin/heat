@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { getBreakdown } from "../services/summaryService";
-import { formatMoney, getTodayIsoDate } from "../utils/formatters";
+import { formatMoney, formatPaymentMethod, getTodayIsoDate } from "../utils/formatters";
 import { DateRangePicker } from "../components/ui/date-range-picker";
 
 // Solid, flat industrial-warm categorical palette (no gradients)
@@ -17,6 +17,15 @@ const CATEGORY_COLORS = [
   "#c46d85", // dusty rose
   "#7d8a96", // cool iron grey
 ];
+
+// Dedicated semantic colors for payment methods
+const PAYMENT_METHOD_COLORS = {
+  creditCard: "#5c87b8", // slate steel blue
+  debitCard: "#5da399", // desaturated teal
+  cash: "#4c9a72", // muted forest green
+  qr: "#df914c", // copper amber
+};
+const DEFAULT_PAYMENT_COLOR = "#b89d4f"; // ochre gold fallback
 
 function getDefaultStartDateIso() {
   const now = new Date();
@@ -81,7 +90,7 @@ function getSubscriptionCyclesInWindow(sub, startDateStr, endDateStr) {
   return count;
 }
 
-function CustomChartTooltip({ active, payload }) {
+function CategoryChartTooltip({ active, payload }) {
   if (!active || !payload || !payload.length) return null;
   const item = payload[0]?.payload;
   if (!item) return null;
@@ -104,11 +113,34 @@ function CustomChartTooltip({ active, payload }) {
   );
 }
 
+function PaymentChartTooltip({ active, payload }) {
+  if (!active || !payload || !payload.length) return null;
+  const item = payload[0]?.payload;
+  if (!item) return null;
+
+  return (
+    <div className="bg-surface border border-border rounded-sm p-2.5 shadow-sm text-xs">
+      <p className="font-bold text-fg mb-1">{item.label}</p>
+      <p className="num-supporting tabular-nums">{formatMoney(item.total)}</p>
+      <p className="num-meta mt-0.5 tabular-nums">
+        {item.share.toFixed(1)}% of spendings ({item.entries}{" "}
+        {item.entries === 1 ? "entry" : "entries"})
+      </p>
+      {item.entries > 0 && (
+        <p className="num-meta mt-1 pt-1 border-t border-border tabular-nums">
+          Avg {formatMoney(item.total / item.entries)} / transaction
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function BreakdownPage() {
   const [dateRange, setDateRange] = useState(() => ({
     startDate: getDefaultStartDateIso(),
     endDate: getTodayIsoDate(),
   }));
+  const [activeView, setActiveView] = useState("all"); // "all" | "categories" | "payments"
 
   const { startDate, endDate } = dateRange;
 
@@ -122,7 +154,7 @@ export default function BreakdownPage() {
     enabled: Boolean(startDate && endDate && startDate <= endDate),
   });
 
-  const breakdown = useMemo(() => {
+  const categoryBreakdown = useMemo(() => {
     const spendings = data?.data?.spendings || [];
     const subscriptions = data?.data?.subscriptions || [];
 
@@ -190,145 +222,350 @@ export default function BreakdownPage() {
     };
   }, [data, startDate, endDate]);
 
+  const paymentBreakdown = useMemo(() => {
+    const spendings = data?.data?.spendings || [];
+    const map = new Map();
+
+    let grandTotal = 0;
+    let totalEntries = 0;
+
+    for (const s of spendings) {
+      const amount = Number(s.amount ?? 0);
+      if (amount <= 0) continue;
+      const method = s.payment_method || "cash";
+      if (!map.has(method)) {
+        map.set(method, {
+          method,
+          label: formatPaymentMethod(method),
+          total: 0,
+          entries: 0,
+        });
+      }
+      const bucket = map.get(method);
+      bucket.total += amount;
+      bucket.entries += 1;
+      grandTotal += amount;
+      totalEntries += 1;
+    }
+
+    const methods = Array.from(map.values())
+      .sort((a, b) => b.total - a.total)
+      .map((item) => ({
+        ...item,
+        color: PAYMENT_METHOD_COLORS[item.method] || DEFAULT_PAYMENT_COLOR,
+        share: grandTotal > 0 ? (item.total / grandTotal) * 100 : 0,
+      }));
+
+    return {
+      methods,
+      grandTotal,
+      totalEntries,
+      totalMethods: methods.length,
+    };
+  }, [data]);
+
+  const showCategories = activeView === "all" || activeView === "categories";
+  const showPayments = activeView === "all" || activeView === "payments";
+
   return (
     <div className="flex flex-col gap-5">
-      {/* Donut Chart & Interactive Date Range Picker Card */}
+      {/* Overview & Interactive Date Range Picker Card */}
       <section className="bg-surface border border-border rounded-md p-4 sm:p-5 flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 pb-3.5 border-b border-border">
           <div className="min-w-0">
-            <h1 className="font-display text-lg font-bold text-fg">Category breakdown</h1>
-            <p className="num-meta mt-0.5">Spendings &amp; subscriptions</p>
+            <h1 className="font-display text-lg font-bold text-fg">Breakdown</h1>
+            <p className="num-meta mt-0.5">Outflow &amp; payment analytics</p>
           </div>
 
           <DateRangePicker startDate={startDate} endDate={endDate} onChange={setDateRange} />
         </div>
 
         {isLoading ? (
-          <div className="h-60 bg-surface-alt rounded-sm animate-pulse" />
+          <div className="h-20 bg-surface-alt rounded-sm animate-pulse" />
         ) : isError ? (
           <div
             role="alert"
             className="p-3.5 rounded-sm bg-error-bg border border-error text-error text-xs font-medium"
           >
-            {error?.message || "Could not load category breakdown."}
+            {error?.message || "Could not load breakdown data."}
           </div>
         ) : (
           <>
-            {/* Hero Total Outflow + Supporting Split Sentence */}
+            {/* Hero Total Outflow + Supporting Split */}
             <div className="flex flex-col gap-1">
               <p className="num-meta">Total outflow</p>
-              <h2 className="num-hero tabular-nums">{formatMoney(breakdown.grandTotal)}</h2>
+              <h2 className="num-hero tabular-nums">{formatMoney(categoryBreakdown.grandTotal)}</h2>
               <p className="num-supporting tabular-nums mt-0.5">
-                {formatMoney(breakdown.totalOneOff)} spendings ·{" "}
-                {formatMoney(breakdown.totalRecurring)} subscriptions
+                {formatMoney(categoryBreakdown.totalOneOff)} spendings ·{" "}
+                {formatMoney(categoryBreakdown.totalRecurring)} subscriptions
               </p>
             </div>
 
-            {breakdown.categories.length === 0 ? (
-              <div className="py-8 text-center border-t border-border flex flex-col gap-1">
-                <p className="text-sm font-medium text-fg">
-                  No spendings or subscriptions in this date range
-                </p>
-                <p className="num-meta">
-                  Tap the date range button on the top right to pick another period.
-                </p>
-              </div>
-            ) : (
-              <>
-                {/* Donut Chart */}
-                <div className="w-full h-60 pt-2 border-t border-border">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={breakdown.categories}
-                        dataKey="total"
-                        nameKey="category"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={58}
-                        outerRadius={92}
-                        paddingAngle={2}
-                        stroke="var(--color-surface)"
-                        strokeWidth={2}
-                        isAnimationActive={false}
-                      >
-                        {breakdown.categories.map((entry) => (
-                          <Cell key={entry.category} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<CustomChartTooltip />} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* Compact Category Legend */}
-                <div className="flex flex-wrap gap-x-4 gap-y-2 pt-2.5 border-t border-border">
-                  {breakdown.categories.map((item) => (
-                    <div key={item.category} className="flex items-center gap-1.5">
-                      <span
-                        className="w-2.5 h-2.5 rounded-xs shrink-0"
-                        style={{ backgroundColor: item.color }}
-                      />
-                      <span className="num-meta tabular-nums">
-                        {item.category} ({item.share.toFixed(0)}%)
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
+            {/* View Selector Tabs */}
+            <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-border">
+              {[
+                { id: "all", label: "All breakdowns" },
+                { id: "categories", label: "Categories" },
+                { id: "payments", label: "Payment methods" },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveView(tab.id)}
+                  className={`px-2.5 py-1.5 text-xs font-medium rounded-xs border transition-colors cursor-pointer truncate text-center ${
+                    activeView === tab.id
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-surface-alt text-fg-secondary hover:text-fg hover:border-fg-muted"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </>
         )}
       </section>
 
-      {/* Ranked Category List */}
-      {!isLoading && !isError && breakdown.categories.length > 0 && (
-        <section className="bg-surface border border-border rounded-md p-4 sm:p-5 flex flex-col gap-3">
-          <div className="border-b border-border pb-2.5">
-            <h2 className="font-display text-base font-bold text-fg truncate">Category details</h2>
-            <p className="num-meta mt-0.5">
-              Ranked across {breakdown.totalCategories}{" "}
-              {breakdown.totalCategories === 1 ? "category" : "categories"}
-            </p>
+      {/* Category Breakdown Section */}
+      {!isLoading && !isError && showCategories && (
+        <section className="bg-surface border border-border rounded-md p-4 sm:p-5 flex flex-col gap-4">
+          <div className="border-b border-border pb-3 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="font-display text-base font-bold text-fg truncate">
+                Category breakdown
+              </h2>
+              <p className="num-meta mt-0.5">Spendings &amp; subscriptions</p>
+            </div>
+            {categoryBreakdown.categories.length > 0 && (
+              <span className="num-meta tabular-nums shrink-0">
+                {categoryBreakdown.totalCategories}{" "}
+                {categoryBreakdown.totalCategories === 1 ? "category" : "categories"}
+              </span>
+            )}
           </div>
 
-          <ul className="divide-y divide-border">
-            {breakdown.categories.map((item) => (
-              <li key={item.category} className="py-3 first:pt-1 last:pb-0 flex flex-col gap-2">
-                <div className="flex items-baseline justify-between gap-3">
-                  <div className="flex items-center gap-2 min-w-0">
+          {categoryBreakdown.categories.length === 0 ? (
+            <div className="py-8 text-center border-t border-border flex flex-col gap-1">
+              <p className="text-sm font-medium text-fg">
+                No spendings or subscriptions in this date range
+              </p>
+              <p className="num-meta">Tap the date range button above to pick another period.</p>
+            </div>
+          ) : (
+            <>
+              {/* Category Donut Chart */}
+              <div className="w-full h-60 pt-1">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={categoryBreakdown.categories}
+                      dataKey="total"
+                      nameKey="category"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={58}
+                      outerRadius={92}
+                      paddingAngle={2}
+                      stroke="var(--color-surface)"
+                      strokeWidth={2}
+                      isAnimationActive={false}
+                    >
+                      {categoryBreakdown.categories.map((entry) => (
+                        <Cell key={entry.category} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CategoryChartTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Compact Category Legend */}
+              <div className="flex flex-wrap gap-x-4 gap-y-2 pt-2.5 border-t border-border">
+                {categoryBreakdown.categories.map((item) => (
+                  <div key={item.category} className="flex items-center gap-1.5">
                     <span
-                      className="w-3 h-3 rounded-xs shrink-0"
+                      className="w-2.5 h-2.5 rounded-xs shrink-0"
                       style={{ backgroundColor: item.color }}
                     />
-                    <span className="text-sm font-semibold text-fg truncate">{item.category}</span>
-                  </div>
-                  <div className="flex items-baseline gap-2 shrink-0">
-                    <span className="num-supporting tabular-nums">{formatMoney(item.total)}</span>
-                    <span className="num-meta tabular-nums w-12 text-right">
-                      {item.share.toFixed(1)}%
+                    <span className="num-meta tabular-nums">
+                      {item.category} ({item.share.toFixed(0)}%)
                     </span>
                   </div>
-                </div>
+                ))}
+              </div>
 
-                <div className="w-full h-1.5 bg-surface-alt rounded-xs overflow-hidden">
-                  <div
-                    className="h-full"
-                    style={{
-                      width: `${Math.max(item.share, 2)}%`,
-                      backgroundColor: item.color,
-                    }}
-                  />
-                </div>
+              {/* Ranked Category List */}
+              <div className="pt-3 border-t border-border flex flex-col gap-2.5">
+                <h3 className="font-display text-xs font-bold uppercase tracking-wider text-fg-muted">
+                  Category details
+                </h3>
+                <ul className="divide-y divide-border">
+                  {categoryBreakdown.categories.map((item) => (
+                    <li
+                      key={item.category}
+                      className="py-3 first:pt-1 last:pb-0 flex flex-col gap-2"
+                    >
+                      <div className="flex items-baseline justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span
+                            className="w-3 h-3 rounded-xs shrink-0"
+                            style={{ backgroundColor: item.color }}
+                          />
+                          <span className="text-sm font-semibold text-fg truncate">
+                            {item.category}
+                          </span>
+                        </div>
+                        <div className="flex items-baseline gap-2 shrink-0">
+                          <span className="num-supporting tabular-nums">
+                            {formatMoney(item.total)}
+                          </span>
+                          <span className="num-meta tabular-nums w-12 text-right">
+                            {item.share.toFixed(1)}%
+                          </span>
+                        </div>
+                      </div>
 
-                <p className="num-meta tabular-nums truncate">
-                  {item.entries} {item.entries === 1 ? "entry" : "entries"} ·{" "}
-                  {formatMoney(item.spendingsTotal)} spendings ·{" "}
-                  {formatMoney(item.subscriptionsTotal)} subscriptions
-                </p>
-              </li>
-            ))}
-          </ul>
+                      <div className="w-full h-1.5 bg-surface-alt rounded-xs overflow-hidden">
+                        <div
+                          className="h-full"
+                          style={{
+                            width: `${Math.max(item.share, 2)}%`,
+                            backgroundColor: item.color,
+                          }}
+                        />
+                      </div>
+
+                      <p className="num-meta tabular-nums truncate">
+                        {item.entries} {item.entries === 1 ? "entry" : "entries"} ·{" "}
+                        {formatMoney(item.spendingsTotal)} spendings ·{" "}
+                        {formatMoney(item.subscriptionsTotal)} subscriptions
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          )}
+        </section>
+      )}
+
+      {/* Payment Method Breakdown Section (Second Chart) */}
+      {!isLoading && !isError && showPayments && (
+        <section className="bg-surface border border-border rounded-md p-4 sm:p-5 flex flex-col gap-4">
+          <div className="border-b border-border pb-3 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="font-display text-base font-bold text-fg truncate">Payment methods</h2>
+              <p className="num-meta mt-0.5">One-off spendings distribution</p>
+            </div>
+            {paymentBreakdown.methods.length > 0 && (
+              <span className="num-meta tabular-nums shrink-0">
+                {paymentBreakdown.totalEntries}{" "}
+                {paymentBreakdown.totalEntries === 1 ? "transaction" : "transactions"}
+              </span>
+            )}
+          </div>
+
+          {paymentBreakdown.methods.length === 0 ? (
+            <div className="py-8 text-center border-t border-border flex flex-col gap-1">
+              <p className="text-sm font-medium text-fg">
+                No spendings recorded in this date range
+              </p>
+              <p className="num-meta">
+                Payment methods are tracked on one-off spendings. Subscriptions are automated
+                recurring charges.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Payment Method Donut Chart */}
+              <div className="w-full h-60 pt-1">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={paymentBreakdown.methods}
+                      dataKey="total"
+                      nameKey="label"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={58}
+                      outerRadius={92}
+                      paddingAngle={2}
+                      stroke="var(--color-surface)"
+                      strokeWidth={2}
+                      isAnimationActive={false}
+                    >
+                      {paymentBreakdown.methods.map((entry) => (
+                        <Cell key={entry.method} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<PaymentChartTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Compact Payment Method Legend */}
+              <div className="flex flex-wrap gap-x-4 gap-y-2 pt-2.5 border-t border-border">
+                {paymentBreakdown.methods.map((item) => (
+                  <div key={item.method} className="flex items-center gap-1.5">
+                    <span
+                      className="w-2.5 h-2.5 rounded-xs shrink-0"
+                      style={{ backgroundColor: item.color }}
+                    />
+                    <span className="num-meta tabular-nums">
+                      {item.label} ({item.share.toFixed(0)}%)
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Ranked Payment Method List */}
+              <div className="pt-3 border-t border-border flex flex-col gap-2.5">
+                <h3 className="font-display text-xs font-bold uppercase tracking-wider text-fg-muted">
+                  Payment method details
+                </h3>
+                <ul className="divide-y divide-border">
+                  {paymentBreakdown.methods.map((item) => (
+                    <li key={item.method} className="py-3 first:pt-1 last:pb-0 flex flex-col gap-2">
+                      <div className="flex items-baseline justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span
+                            className="w-3 h-3 rounded-xs shrink-0"
+                            style={{ backgroundColor: item.color }}
+                          />
+                          <span className="text-sm font-semibold text-fg truncate">
+                            {item.label}
+                          </span>
+                        </div>
+                        <div className="flex items-baseline gap-2 shrink-0">
+                          <span className="num-supporting tabular-nums">
+                            {formatMoney(item.total)}
+                          </span>
+                          <span className="num-meta tabular-nums w-12 text-right">
+                            {item.share.toFixed(1)}%
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="w-full h-1.5 bg-surface-alt rounded-xs overflow-hidden">
+                        <div
+                          className="h-full"
+                          style={{
+                            width: `${Math.max(item.share, 2)}%`,
+                            backgroundColor: item.color,
+                          }}
+                        />
+                      </div>
+
+                      <p className="num-meta tabular-nums truncate">
+                        {item.entries} {item.entries === 1 ? "transaction" : "transactions"} · Avg{" "}
+                        {formatMoney(item.total / item.entries)} / transaction
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          )}
         </section>
       )}
     </div>

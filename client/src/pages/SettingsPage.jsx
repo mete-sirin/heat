@@ -225,7 +225,7 @@ export default function SettingsPage() {
                   <FormItem>
                     <FormLabel>Full name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Mete Şirin" {...field} />
+                      <Input placeholder="Your Name" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
