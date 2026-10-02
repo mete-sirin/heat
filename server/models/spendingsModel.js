@@ -1,4 +1,4 @@
-import db from "../server.js";
+import db from "../db.js";
 import ErrorApi from "../utils/ErrorApi.js";
 import {
   buildSelectQuery,

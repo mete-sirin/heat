@@ -82,6 +82,7 @@ function HomePage() {
   const utilization = hasBudget ? Math.min((balance / budget) * 100, 100) : 0;
   const isOverBudget = hasBudget && remaining < 0;
 
+  const spendingCount = summary.spendingCount ?? spendings.length;
   const hasSubscriptions = subscriptions.length > 0;
   const recurringTotal = subscriptions.reduce((acc, item) => acc + Number(item.amount ?? 0), 0);
 
@@ -140,9 +141,9 @@ function HomePage() {
           {/* Line 2: Subtitle/count + View all link */}
           <div className="flex items-center justify-between gap-2">
             <span className="num-meta">
-              {spendings.length} {spendings.length === 1 ? "entry" : "entries"}
+              {spendingCount} {spendingCount === 1 ? "entry" : "entries"}
             </span>
-            {spendings.length > 0 && (
+            {spendingCount > 0 && (
               <Link
                 to="/spendings"
                 className="text-xs font-medium text-fg-secondary hover:text-fg underline shrink-0"

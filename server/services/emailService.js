@@ -9,22 +9,25 @@ const resend = new Resend(config.resendKey);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const LOGO_PATH = path.resolve(__dirname, "../../client/public/heat_logo.png");
+const LOGO_PATH = path.resolve(__dirname, "../assets/heat_logo.png");
+
+let cachedLogoBase64 = null;
+try {
+  cachedLogoBase64 = fs.readFileSync(LOGO_PATH).toString("base64");
+} catch {
+  cachedLogoBase64 = null;
+}
 
 function getLogoAttachment() {
-  try {
-    const buffer = fs.readFileSync(LOGO_PATH);
-    return [
-      {
-        filename: "heat_logo.png",
-        content: buffer.toString("base64"),
-        contentType: "image/png",
-        contentId: "heat_logo",
-      },
-    ];
-  } catch {
-    return [];
-  }
+  if (!cachedLogoBase64) return [];
+  return [
+    {
+      filename: "heat_logo.png",
+      content: cachedLogoBase64,
+      contentType: "image/png",
+      contentId: "heat_logo",
+    },
+  ];
 }
 
 function getFrontendBaseUrl() {

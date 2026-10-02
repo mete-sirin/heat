@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import db from "../server.js";
+import db from "../db.js";
 import ErrorApi from "../utils/ErrorApi.js";
 import {
   buildSelectQuery,
@@ -22,14 +22,18 @@ async function getSubscriptions(userId, queryObj, userTimezone) {
       op: "<=",
     },
   };
-  const { recordQuery, metaDataQuery, valuesForRecords, valuesForMetaData } = buildSelectQuery({
-    table: "subscriptions",
-    userId,
-    queryObj,
-    filterRules,
-    userTimezone,
-  });
-  const [[rows], [results]] = await Promise.all([db.execute(recordQuery, valuesForRecords), db.execute(metaDataQuery, valuesForMetaData)]);
+  const { recordQuery, metaDataQuery, valuesForRecords, valuesForMetaData } =
+    buildSelectQuery({
+      table: "subscriptions",
+      userId,
+      queryObj,
+      filterRules,
+      userTimezone,
+    });
+  const [[rows], [results]] = await Promise.all([
+    db.execute(recordQuery, valuesForRecords),
+    db.execute(metaDataQuery, valuesForMetaData),
+  ]);
 
   rows.forEach((el) => {
     const formattedTime = formatCreatedAtForUser(el.created_at, userTimezone);
@@ -54,14 +58,20 @@ async function getSubscriptions(userId, queryObj, userTimezone) {
 }
 
 async function deleteSubscription(subscriptionId, userId) {
-  const getSubscriptionAmountQuery = "select amount from subscriptions where id = ? and user_id = ?";
-  const deleteSubscriptionQuery = "delete from subscriptions where id = ? and user_id = ?";
-  const updateBalanceQuery = "update users set balance = balance - ? where id = ?";
+  const getSubscriptionAmountQuery =
+    "select amount from subscriptions where id = ? and user_id = ?";
+  const deleteSubscriptionQuery =
+    "delete from subscriptions where id = ? and user_id = ?";
+  const updateBalanceQuery =
+    "update users set balance = balance - ? where id = ?";
   const selectBalanceQuery = "select balance from users where id = ?";
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
-    const [subscriptionRow] = await connection.execute(getSubscriptionAmountQuery, [subscriptionId, userId]);
+    const [subscriptionRow] = await connection.execute(
+      getSubscriptionAmountQuery,
+      [subscriptionId, userId],
+    );
     if (!subscriptionRow.length) {
       throw new ErrorApi("No subscription was found with the provided ID", 400);
     }
@@ -84,11 +94,17 @@ async function deleteSubscription(subscriptionId, userId) {
 }
 
 async function updateSubscription(subscriptionObj, subscriptionId, userId) {
-  const { query, values } = sanitizeSubscriptionInput(subscriptionObj, subscriptionId, userId);
+  const { query, values } = sanitizeSubscriptionInput(
+    subscriptionObj,
+    subscriptionId,
+    userId,
+  );
   const amountHasChanged = query.includes("amount");
   const billingCycleHasChanged =
-    subscriptionObj.startDate !== undefined || subscriptionObj.length !== undefined;
-  const updateBalanceQuery = "update users set balance = balance - ? where id = ? ";
+    subscriptionObj.startDate !== undefined ||
+    subscriptionObj.length !== undefined;
+  const updateBalanceQuery =
+    "update users set balance = balance - ? where id = ? ";
   const selectUserBalanceQuery = "select balance from users where id = ?";
   const connection = await db.getConnection();
   try {
@@ -119,20 +135,29 @@ async function updateSubscription(subscriptionObj, subscriptionId, userId) {
     }
 
     if (amountHasChanged) {
-      const updateBalanceValue = subscriptionObj.currentAmount - subscriptionObj.amount;
-      await connection.execute(updateBalanceQuery, [updateBalanceValue, userId]);
+      const updateBalanceValue =
+        subscriptionObj.currentAmount - subscriptionObj.amount;
+      await connection.execute(updateBalanceQuery, [
+        updateBalanceValue,
+        userId,
+      ]);
     }
 
-    const [userRows] = await connection.execute(selectUserBalanceQuery, [userId]);
+    const [userRows] = await connection.execute(selectUserBalanceQuery, [
+      userId,
+    ]);
     await connection.commit();
 
-    const { currentAmount, currentStartDate, ...cleanSubscriptionObj } = subscriptionObj;
+    const { currentAmount, currentStartDate, ...cleanSubscriptionObj } =
+      subscriptionObj;
 
     return {
       subscription: {
         id: subscriptionId,
         ...cleanSubscriptionObj,
-        ...(updatedNextBillingDate ? { nextBillingDate: updatedNextBillingDate } : {}),
+        ...(updatedNextBillingDate
+          ? { nextBillingDate: updatedNextBillingDate }
+          : {}),
       },
       userBalance: userRows[0]?.balance,
     };
@@ -145,16 +170,29 @@ async function updateSubscription(subscriptionObj, subscriptionId, userId) {
   }
 }
 async function uploadSubscription(subscriptionObj, userId, userTimeZone) {
-  const { subscriptionName, subscriptionCategory, amount, startDate, length } = subscriptionObj;
+  const { subscriptionName, subscriptionCategory, amount, startDate, length } =
+    subscriptionObj;
 
   const insertSubscriptionQuery =
     "insert into subscriptions (subscription_name, subscription_category, amount, start_date, length, user_id, next_billing_date) values (?, ?, ?, ?, ?, ?, ?)";
 
   const category = subscriptionCategory ?? "Generic";
-  const nextBillingDateValue = DateTime.fromISO(startDate).setZone("utc").plus({ days: length }).toISODate();
-  const insertSubscriptionValues = [subscriptionName, category, amount, startDate, length, userId, nextBillingDateValue];
+  const nextBillingDateValue = DateTime.fromISO(startDate)
+    .setZone("utc")
+    .plus({ days: length })
+    .toISODate();
+  const insertSubscriptionValues = [
+    subscriptionName,
+    category,
+    amount,
+    startDate,
+    length,
+    userId,
+    nextBillingDateValue,
+  ];
 
-  const updateBalanceQuery = "update users set balance = balance + ? where id = ?";
+  const updateBalanceQuery =
+    "update users set balance = balance + ? where id = ?";
   const updateBalanceValues = [amount, userId];
 
   const getUserBalanceQuery = "select balance from users where id = ?";
@@ -166,7 +204,10 @@ async function uploadSubscription(subscriptionObj, userId, userTimeZone) {
   try {
     await connection.beginTransaction();
 
-    const [subscriptionResult] = await connection.execute(insertSubscriptionQuery, insertSubscriptionValues);
+    const [subscriptionResult] = await connection.execute(
+      insertSubscriptionQuery,
+      insertSubscriptionValues,
+    );
 
     if (isStartingTodayOrPast) {
       await connection.execute(updateBalanceQuery, updateBalanceValues);
@@ -184,7 +225,9 @@ async function uploadSubscription(subscriptionObj, userId, userTimeZone) {
         amount,
         startDate,
         length,
-        nextBillingDateValue: DateTime.fromISO(startDate).plus({ days: length }).toISODate(),
+        nextBillingDateValue: DateTime.fromISO(startDate)
+          .plus({ days: length })
+          .toISODate(),
       },
       userBalance: userRows[0]?.balance,
     };
@@ -197,4 +240,15 @@ async function uploadSubscription(subscriptionObj, userId, userTimeZone) {
   }
 }
 
-export { getSubscriptions, deleteSubscription, uploadSubscription, updateSubscription };
+async function updateUserBalance() {
+  const numberOfUsers = await db.execute("select count(*) from users");
+  const retriveSubscriptionInfoQuery = "select ";
+  for (let userRow = 0; userRow < numberOfUsers; userRow++) {}
+}
+
+export {
+  getSubscriptions,
+  deleteSubscription,
+  uploadSubscription,
+  updateSubscription,
+};

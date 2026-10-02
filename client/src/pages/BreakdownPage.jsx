@@ -155,6 +155,7 @@ export default function BreakdownPage() {
   });
 
   const categoryBreakdown = useMemo(() => {
+    const categories = data?.data?.categories || [];
     const spendings = data?.data?.spendings || [];
     const subscriptions = data?.data?.subscriptions || [];
 
@@ -177,16 +178,31 @@ export default function BreakdownPage() {
     let totalOneOff = 0;
     let totalRecurring = 0;
 
-    for (const s of spendings) {
-      const amount = Number(s.amount ?? 0);
-      if (amount <= 0) continue;
-      const cat = normalizeCategory(s.spending_category);
-      const bucket = ensureCategory(cat);
-      bucket.total += amount;
-      bucket.spendingsTotal += amount;
-      bucket.entries += 1;
-      grandTotal += amount;
-      totalOneOff += amount;
+    if (categories.length > 0) {
+      for (const c of categories) {
+        const amount = Number(c.total ?? 0);
+        const count = Number(c.count ?? 0);
+        if (amount <= 0 && count <= 0) continue;
+        const cat = normalizeCategory(c.spending_category);
+        const bucket = ensureCategory(cat);
+        bucket.total += amount;
+        bucket.spendingsTotal += amount;
+        bucket.entries += count;
+        grandTotal += amount;
+        totalOneOff += amount;
+      }
+    } else if (spendings.length > 0) {
+      for (const s of spendings) {
+        const amount = Number(s.amount ?? 0);
+        if (amount <= 0) continue;
+        const cat = normalizeCategory(s.spending_category);
+        const bucket = ensureCategory(cat);
+        bucket.total += amount;
+        bucket.spendingsTotal += amount;
+        bucket.entries += 1;
+        grandTotal += amount;
+        totalOneOff += amount;
+      }
     }
 
     for (const sub of subscriptions) {
@@ -205,7 +221,7 @@ export default function BreakdownPage() {
       totalRecurring += subTotal;
     }
 
-    const categories = Array.from(map.values())
+    const categoryList = Array.from(map.values())
       .sort((a, b) => b.total - a.total)
       .map((item, idx) => ({
         ...item,
@@ -214,38 +230,61 @@ export default function BreakdownPage() {
       }));
 
     return {
-      categories,
+      categories: categoryList,
       grandTotal,
       totalOneOff,
       totalRecurring,
-      totalCategories: categories.length,
+      totalCategories: categoryList.length,
     };
   }, [data, startDate, endDate]);
 
   const paymentBreakdown = useMemo(() => {
+    const paymentMethods = data?.data?.paymentMethods || [];
     const spendings = data?.data?.spendings || [];
     const map = new Map();
 
     let grandTotal = 0;
     let totalEntries = 0;
 
-    for (const s of spendings) {
-      const amount = Number(s.amount ?? 0);
-      if (amount <= 0) continue;
-      const method = s.payment_method || "cash";
-      if (!map.has(method)) {
-        map.set(method, {
-          method,
-          label: formatPaymentMethod(method),
-          total: 0,
-          entries: 0,
-        });
+    if (paymentMethods.length > 0) {
+      for (const p of paymentMethods) {
+        const amount = Number(p.total ?? 0);
+        const count = Number(p.count ?? 0);
+        if (amount <= 0 && count <= 0) continue;
+        const method = p.payment_method || "cash";
+        if (!map.has(method)) {
+          map.set(method, {
+            method,
+            label: formatPaymentMethod(method),
+            total: 0,
+            entries: 0,
+          });
+        }
+        const bucket = map.get(method);
+        bucket.total += amount;
+        bucket.entries += count;
+        grandTotal += amount;
+        totalEntries += count;
       }
-      const bucket = map.get(method);
-      bucket.total += amount;
-      bucket.entries += 1;
-      grandTotal += amount;
-      totalEntries += 1;
+    } else if (spendings.length > 0) {
+      for (const s of spendings) {
+        const amount = Number(s.amount ?? 0);
+        if (amount <= 0) continue;
+        const method = s.payment_method || "cash";
+        if (!map.has(method)) {
+          map.set(method, {
+            method,
+            label: formatPaymentMethod(method),
+            total: 0,
+            entries: 0,
+          });
+        }
+        const bucket = map.get(method);
+        bucket.total += amount;
+        bucket.entries += 1;
+        grandTotal += amount;
+        totalEntries += 1;
+      }
     }
 
     const methods = Array.from(map.values())
