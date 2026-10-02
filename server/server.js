@@ -1,24 +1,12 @@
 process.env.TZ = "UTC";
-import mysql from "mysql2/promise";
 import { config } from "./utils/config.js";
-import express from "express";
 import app from "./app.js";
+import subscriptionCron from "./jobs/subscriptionCron.js";
+import monthlyResetCron from "./jobs/resetBalanceCron.js";
 
 process.on("uncaughtException", (err) => {
   console.log("UNCAUGHT EXCEPTION:", err);
-});
-
-const db = mysql.createPool({
-  host: config.db.host,
-  user: config.db.user,
-  password: config.db.password,
-  database: config.db.database,
-  timezone: "Z",
-  dateStrings: ["DATE"],
-});
-
-db.on("connection", (connection) => {
-  connection.query("SET time_zone = '+00:00'");
+  process.exit(1);
 });
 
 const server = app.listen(config.port, () =>
@@ -30,5 +18,3 @@ process.on("unhandledRejection", (err) => {
   console.log(err.name, err.message);
   server.close(() => process.exit(1));
 });
-
-export default db;

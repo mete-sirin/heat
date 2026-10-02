@@ -13,24 +13,20 @@ const breakdownQuerySchema = z.object({
 });
 
 async function getSummary(req, res, next) {
-  const { spendings, subscriptions, user } = await summaryModel.getSummary(
+  const summaryData = await summaryModel.getSummary(
     req.user.id,
     req.user.time_zone,
   );
 
   res.status(200).json({
     status: "success",
-    data: {
-      user,
-      spendings,
-      subscriptions,
-    },
+    data: summaryData,
   });
 }
 
 async function getBreakdown(req, res, next) {
   const { start_date: startDate, end_date: endDate } = breakdownQuerySchema.parse(req.query);
-  const { spendings, subscriptions } = await summaryModel.getBreakdown(
+  const breakdownData = await summaryModel.getBreakdown(
     req.user.id,
     req.user.time_zone,
     { startDate, endDate },
@@ -38,10 +34,7 @@ async function getBreakdown(req, res, next) {
 
   res.status(200).json({
     status: "success",
-    data: {
-      spendings,
-      subscriptions,
-    },
+    data: breakdownData,
   });
 }
 

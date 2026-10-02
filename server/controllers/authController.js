@@ -118,7 +118,7 @@ async function logout(req, res) {
       await userModel.logUserOut(user.id);
     }
   } catch {
-    // If token is missing, invalid, or already expired, proceed to clear cookie
+    // if token is missing, invalid, or already expired, proceed to clear cookie
   }
 
   res.status(200).clearCookie("access_token", cookieOptions).json({
