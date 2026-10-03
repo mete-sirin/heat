@@ -6,8 +6,8 @@ It doesn't offer anything crazy. The main focus of this whole project is the bac
 
 If you're here to check out the actual engineering work, check these out instead:
 
-- ⚙️ [**Root README (Project Overview)**](../README.md)
-- 🛠️ [**Backend & VPS Setup Deep-Dive**](../server/README.md)
+- [**Root README (Project Overview)**](../README.md)
+- [**Backend & VPS Setup Deep-Dive**](../server/README.md)
 
 ---
 
