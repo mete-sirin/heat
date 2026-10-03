@@ -7,11 +7,11 @@
 
 ---
 
-## Authentication & Headers
+## Authentication
 
-Protected routes use the `protect` middleware. They require a valid JWT via one of two methods:
-1. **Cookie (Default/Recommended):** `access_token` (HTTP-only cookie set automatically on login/signup/password change, valid for 7 days).
-2. **Authorization Header:** `Authorization: Bearer <jwt_token>`
+Protected routes use the `protect` middleware. Authentication is purely cookie-based:
+- **Cookie:** `access_token` (HTTP-only cookie set automatically on login/signup/password change, valid for 7 days).
+- Requests from the browser automatically send this cookie with `credentials: "include"`.
 
 ---
 
@@ -137,8 +137,7 @@ Protected routes use the `protect` middleware. They require a valid JWT via one 
 
 ### 1.4 Get Current User Profile
 * **Address:** `GET /api/v1/auth/me`
-* **Access:** Protected
-* **Expects:** `access_token` cookie or Bearer token
+* **Access:** Protected (Requires `access_token` cookie)
 * **Returns:**
   * `200 OK`
     ```json

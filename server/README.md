@@ -1,4 +1,4 @@
-# HEAT  Backend & Infrastructure
+# HEAT Backend & Infrastructure
 
 I built this backend using _Node.js (Express 5)_ and raw _MySQL 8_ without any ORM (like Prisma or Drizzle) or BaaS (like Supabase or Firebase). I wanted to write every query, transaction, auth check, and server config myself to understand how production systems actually work.
 
@@ -75,6 +75,6 @@ npm run dev
 
 ## Other Docs
 
-- ⚙️ [**Root README (Project Overview)**](../README.md)
-- 📖 [**API Documentation**](../docs/api.md)
-- 💻 [**Frontend README**](../client/README.md)
+- [**Root README (Project Overview)**](../README.md)
+- [**API Documentation**](../docs/api.md)
+- [**Frontend README**](../client/README.md)

@@ -4,10 +4,7 @@ import { config } from "./config.js";
 import { DateTime } from "luxon";
 
 function decodeJWTFromReq(req) {
-  let token = req.cookies?.access_token;
-  if (!token && req.headers?.authorization?.startsWith("Bearer ")) {
-    token = req.headers.authorization.split(" ")[1]?.trim();
-  }
+  const token = req.cookies?.access_token;
   if (!token) {
     throw new ErrorApi("No JWT provided.", 401);
   }
