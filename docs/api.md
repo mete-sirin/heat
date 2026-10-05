@@ -291,6 +291,32 @@ Protected routes use the `protect` middleware. Authentication is purely cookie-b
 
 ---
 
+### 1.11 Delete Account
+* **Address:** `DELETE /api/v1/auth/me`
+* **Access:** Protected (Requires `access_token` cookie, Rate limited: 50 req / 15 min)
+* **Request Body:**
+  ```json
+  {
+    "password": "Password123!" // String, 1–64 chars (Required to confirm deletion)
+  }
+  ```
+* **Side Effects:**
+  * Purges all user records atomically across `spendings`, `subscriptions`, and `users` tables.
+  * Clears the `access_token` authentication cookie.
+  * Immediately invalidates active sessions in compliance with GDPR Art. 17 & KVKK Art. 11 (Right to Erasure).
+* **Returns:**
+  * `200 OK`
+    ```json
+    {
+      "status": "success",
+      "message": "Account and all associated data have been permanently deleted."
+    }
+    ```
+  * `400 Bad Request`: "Password is required to confirm account deletion." or "Password is incorrect."
+  * `401 Unauthorized`: Missing or invalid session token.
+
+---
+
 ## 2. Spendings Endpoints (`/api/v1/spendings`)
 
 *All Spendings routes are **Protected**.*

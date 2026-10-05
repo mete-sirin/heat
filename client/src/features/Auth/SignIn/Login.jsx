@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router";
+import { Link, Navigate, useLocation, useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -12,9 +12,11 @@ import Button from "../../../ui/Button";
 
 function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const { isAuthenticated } = useAuth();
   const [resendMessage, setResendMessage] = useState("");
+  const notice = location.state?.notice;
 
   const {
     register,
@@ -67,6 +69,15 @@ function Login() {
 
   return (
     <AuthShell title="Log In" subtitle="Enter your credentials to access your HEAT ledger.">
+      {notice && (
+        <div
+          role="status"
+          className="mb-4 p-3 rounded-md bg-success-bg border border-success text-success text-xs font-medium"
+        >
+          {notice}
+        </div>
+      )}
+
       {loginMutation.error && (
         <div
           role="alert"
