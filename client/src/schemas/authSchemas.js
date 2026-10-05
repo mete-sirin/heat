@@ -99,3 +99,10 @@ export const updateProfileSchema = z.object({
     .refine(isValidTimeZone, "Invalid IANA timezone (e.g. Europe/Istanbul)."),
   budget: positiveCurrencyAmount("Enter a monthly budget greater than ₺0."),
 });
+
+export const deleteAccountSchema = z.object({
+  password: z
+    .string()
+    .min(1, "Password is required to confirm account deletion.")
+    .max(64, "Password cannot exceed 64 characters."),
+});

@@ -3,10 +3,21 @@ import { useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { changePasswordSchema, updateProfileSchema } from "../schemas/authSchemas";
-import { changePassword, updateUser } from "../services/authService";
+import {
+  changePasswordSchema,
+  deleteAccountSchema,
+  updateProfileSchema,
+} from "../schemas/authSchemas";
+import { changePassword, deleteAccount, updateUser } from "../services/authService";
 import { useAuth } from "../hooks/useAuth";
 import { formatMoney, formatMonthYear } from "../utils/formatters";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from "../components/ui/drawer";
 import {
   Form,
   FormControl,
@@ -94,6 +105,42 @@ export default function SettingsPage() {
       passwordForm.reset();
     },
   });
+
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  // 3. Delete Account Form (DELETE /api/v1/auth/me) - GDPR / KVKK Right to Erasure
+  const deleteForm = useForm({
+    resolver: zodResolver(deleteAccountSchema),
+    defaultValues: {
+      password: "",
+    },
+  });
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: (values) => deleteAccount(values),
+    onSuccess: () => {
+      setIsDeleteModalOpen(false);
+      deleteForm.reset();
+      queryClient.setQueryData(["auth", "me"], null);
+      queryClient.clear();
+      navigate("/login", {
+        replace: true,
+        state: {
+          notice: "Your account and all associated personal data have been permanently deleted.",
+        },
+      });
+    },
+  });
+
+  const handleCloseDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    deleteForm.reset();
+    deleteAccountMutation.reset();
+  };
+
+  const handleDeleteAccount = (values) => {
+    deleteAccountMutation.mutate(values);
+  };
 
   const handleSignOut = async () => {
     await logout();
@@ -394,6 +441,111 @@ export default function SettingsPage() {
           </svg>
         </button>
       </section>
+
+      {/* Danger Zone: Account Deletion (GDPR / KVKK Right to Erasure) */}
+      <section className="bg-surface border border-error/30 rounded-md p-4 sm:p-5 flex flex-col gap-3.5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-border">
+          <div>
+            <h2 className="font-display text-base font-bold text-error">Danger zone</h2>
+            <p className="text-xs text-fg-muted mt-0.5">
+              Permanently erase your account and all associated data.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="danger"
+            size="sm"
+            onClick={() => setIsDeleteModalOpen(true)}
+            className="shrink-0"
+          >
+            Delete account
+          </Button>
+        </div>
+
+        <p className="text-xs text-fg-muted leading-relaxed">
+          In accordance with GDPR and KVKK data privacy regulations, deleting your account immediately and permanently purges your profile, balance, monthly budget, spending transactions, and recurring subscriptions from our database. This action is irreversible.
+        </p>
+      </section>
+
+      {/* Delete Account Confirmation Drawer */}
+      <Drawer
+        open={isDeleteModalOpen}
+        onOpenChange={(open) => {
+          if (!open) handleCloseDeleteModal();
+        }}
+      >
+        <DrawerContent>
+          <DrawerHeader>
+            <div>
+              <DrawerTitle className="text-error">Delete account</DrawerTitle>
+              <DrawerDescription>
+                Permanent erasure of your personal data &amp; account.
+              </DrawerDescription>
+            </div>
+          </DrawerHeader>
+
+          {deleteAccountMutation.error && (
+            <div
+              role="alert"
+              className="mb-4 p-3 rounded-md bg-error-bg border border-error text-error text-xs font-medium"
+            >
+              {deleteAccountMutation.error.message}
+            </div>
+          )}
+
+          <div className="mb-4 p-3 rounded-sm border border-error/40 bg-error-bg/30 text-xs text-fg flex flex-col gap-1.5">
+            <p className="font-semibold text-error">Warning: This action is permanent and irreversible.</p>
+            <p className="text-fg-secondary leading-relaxed">
+              All your personal profile data, spending records, recurring subscriptions, and budget settings will be permanently erased immediately in compliance with data privacy regulations.
+            </p>
+          </div>
+
+          <Form {...deleteForm}>
+            <form
+              onSubmit={deleteForm.handleSubmit(handleDeleteAccount)}
+              noValidate
+              className="flex flex-col gap-4"
+            >
+              <FormField
+                control={deleteForm.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Enter your password to confirm</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        autoComplete="current-password"
+                        placeholder="••••••••"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="pt-3 border-t border-border flex items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleCloseDeleteModal}
+                  disabled={deleteAccountMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="danger"
+                  isLoading={deleteAccountMutation.isPending}
+                >
+                  Permanently delete account
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }

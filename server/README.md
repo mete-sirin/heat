@@ -1,19 +1,3 @@
-# HEAT Backend & Infrastructure
-
-I built this backend using _Node.js (Express 5)_ and raw _MySQL 8_ without any ORM (like Prisma or Drizzle) or BaaS (like Supabase or Firebase). I wanted to write every query, transaction, auth check, and server config myself to understand how production systems actually work.
-
-It runs on an unmanaged Ubuntu VPS on Hetzner that I set up and maintain myself.
-
-### Quick Navigation
-
-- [Architecture & Request Flow](#architecture--request-flow)
-- [Database & Query Highlights](#database--query-highlights)
-- [Auth & Security Choices](#auth--security-choices)
-- [Hetzner VPS & Production Setup](#hetzner-vps--production-setup)
-- [Run Locally](#run-locally)
-
----
-
 ## Architecture & Request Flow
 
 - **Express 5:** Uses Express 5.2 for native async error handling (no try/catch wrapper boilerplate needed around async route handlers).

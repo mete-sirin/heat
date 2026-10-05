@@ -68,3 +68,10 @@ export function resetPasswordWithToken({ token, password, passwordConfirm }) {
     body: { password, passwordConfirm },
   });
 }
+
+export function deleteAccount(payload) {
+  return apiRequest("/auth/me", {
+    method: "DELETE",
+    body: payload,
+  });
+}
